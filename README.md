@@ -28,7 +28,9 @@ require.config({debug : true});
 # Loading a module
 A module should be loaded using the require function, the require function takes an array of module paths
 which cn be absolute or relative based on the root directory:
+`
 require(["dromos.utilities", "myModuleDir/myModule", "../myOtherModuleDir/myOtherModule"]);
+`
 
 Any modules that have not been loaded already will then be loaded, modules that have already been loaded will not be loaded a second time.
 
@@ -36,33 +38,41 @@ Any modules that have not been loaded already will then be loaded, modules that 
 Module Callbacks.  Any function passed as the second argument of require will be called only when
 all of the modules defined are loaded.  If modules can not be loaded for any reason, the callback will not
 be called.  Each parameter passed to the callback corresponds with the module that was required. e.g.:
+`
 require(["dromos.utilities", "myModuleDir/myModule", "../myOtherModuleDir/myOtherModule"], 
 	function(toUtilities, toMyModule, toOtherModule)
 	{
 		// Do something relevent here!
 	});
+`
 
 It is also possible to load a single module by passing a string rather than an array e.g.:
+`
 require("dromos.utilities");
+`
 
 And with callback:
+`
 require("dromos.utilities", function(toUtilities)
 	{
 		// Do something with utilities
 	});
+`
 
 If the module name has .js included then relative paths will be from the document location rather than from the default root. e.g. :
+`
 require("./myPage.Utilities.js", function(toUtilities)
 	{
 		// Do something with utilities
 	});
-
+`
 ## Creating a plugin
 
 Plugins must be named dromos.Bootstrap.&lt;pluginName&gt;, and must be in the same directory as dromos.Bootstrap.js
 
 A plugin can be created by extending the dromos.Bootstrap.Plugin class, or any class the extends from the Plugin class.  e.g.:
 
+`
 // dromos.Bootstrap.testPlugin.js file
 define(function(){
 
@@ -78,6 +88,7 @@ define(function(){
         }
     ));
 });
+`
 
 
 The following methods are available for overriding:
@@ -93,15 +104,18 @@ The following methods are available for overriding:
 
 ## Accessing jquery, underscore, or backbone
 jQuery, underscore, or backbone can be accessed either by including in a define or require e.g.:
+`
 require(["underscore"], function(_)
 {
 	// do something with underscore using the '_' variable name.
 });
+`
 
 or they can be accessed without including in require or define by accessing from the dromos namespace e.g.:
+`
 dromos._   // Underscore
 dromos.$bb // Backbone
 dromos.$jQ // jQuery
-
+`
 While this is possible, it is not reccomended as the require and define are used to make it clear what is required for a specific module.
  
