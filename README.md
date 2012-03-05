@@ -8,13 +8,13 @@ dromos makes use of Backbone, underscore, and jQuery.
 
 ## Usage
 To use the dromos library, simply include it in you page as you would any other javascript:
-<script src="dromos.bootstrap.js" type="text/javascript" charset="utf-8"></script>
+&lt;script src="dromos.bootstrap.js" type="text/javascript" charset="utf-8"&gt;&lt;/script&gt;
 
 To preconfigure dromos, you can include a configuration object before the script is loaded:
-<script type="text/javascript">
+&lt;script type="text/javascript"&gt;
 	require = {debug : true};
-</script>
-<script src="../dromos.bootstrap.js" type="text/javascript" charset="utf-8"></script>
+&lt;/script&gt;
+&lt;script src="../dromos.bootstrap.js" type="text/javascript" charset="utf-8"&gt;&lt;/script&gt;
 
 To configure dromos after loading you can call require.config :
 require.config({debug : true});
@@ -59,7 +59,7 @@ require("./myPage.Utilities.js", function(toUtilities)
 
 ## Creating a plugin
 
-Plugins must be named dromos.Bootstrap.<pluginName>, and must be in the same directory as dromos.Bootstrap.js
+Plugins must be named dromos.Bootstrap.&lt;pluginName&gt;, and must be in the same directory as dromos.Bootstrap.js
 
 A plugin can be created by extending the dromos.Bootstrap.Plugin class, or any class the extends from the Plugin class.  e.g.:
 
@@ -81,6 +81,7 @@ define(function(){
 
 
 The following methods are available for overriding:
+
 * load - intended to load the module.  Called when a module is required/defined, but not yet loaded
 * addScriptTag - intended to add a tag to the document body, normally this would cause the .js to load
 * onScriptError - occurs when there is an error loading the script, event driven from the script tag
