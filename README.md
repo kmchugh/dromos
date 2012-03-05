@@ -17,7 +17,9 @@ To preconfigure dromos, you can include a configuration object before the script
 &lt;script src="../dromos.bootstrap.js" type="text/javascript" charset="utf-8"&gt;&lt;/script&gt;
 
 To configure dromos after loading you can call require.config :
-require.config({debug : true});
+`
+	require.config({debug : true});
+`
 
 ## Configuration options
 * debug, boolean, turns on or off debugging.  When debugging is on, console.debug will log to the console.
@@ -29,7 +31,7 @@ require.config({debug : true});
 A module should be loaded using the require function, the require function takes an array of module paths
 which cn be absolute or relative based on the root directory:
 `
-require(["dromos.utilities", "myModuleDir/myModule", "../myOtherModuleDir/myOtherModule"]);
+	require(["dromos.utilities", "myModuleDir/myModule", "../myOtherModuleDir/myOtherModule"]);
 `
 
 Any modules that have not been loaded already will then be loaded, modules that have already been loaded will not be loaded a second time.
@@ -39,7 +41,7 @@ Module Callbacks.  Any function passed as the second argument of require will be
 all of the modules defined are loaded.  If modules can not be loaded for any reason, the callback will not
 be called.  Each parameter passed to the callback corresponds with the module that was required. e.g.:
 `
-require(["dromos.utilities", "myModuleDir/myModule", "../myOtherModuleDir/myOtherModule"], 
+	require(["dromos.utilities", "myModuleDir/myModule", "../myOtherModuleDir/myOtherModule"], 
 	function(toUtilities, toMyModule, toOtherModule)
 	{
 		// Do something relevent here!
@@ -48,12 +50,12 @@ require(["dromos.utilities", "myModuleDir/myModule", "../myOtherModuleDir/myOthe
 
 It is also possible to load a single module by passing a string rather than an array e.g.:
 `
-require("dromos.utilities");
+	require("dromos.utilities");
 `
 
 And with callback:
 `
-require("dromos.utilities", function(toUtilities)
+	require("dromos.utilities", function(toUtilities)
 	{
 		// Do something with utilities
 	});
@@ -61,7 +63,7 @@ require("dromos.utilities", function(toUtilities)
 
 If the module name has .js included then relative paths will be from the document location rather than from the default root. e.g. :
 `
-require("./myPage.Utilities.js", function(toUtilities)
+	require("./myPage.Utilities.js", function(toUtilities)
 	{
 		// Do something with utilities
 	});
@@ -73,21 +75,21 @@ Plugins must be named dromos.Bootstrap.&lt;pluginName&gt;, and must be in the sa
 A plugin can be created by extending the dromos.Bootstrap.Plugin class, or any class the extends from the Plugin class.  e.g.:
 
 `
-// dromos.Bootstrap.testPlugin.js file
-define(function(){
+	// dromos.Bootstrap.testPlugin.js file
+	define(function(){
 
-    return new (dromos.Bootstrap.Plugin.extend(
-        {
-            load : function(toModule)
-            {
-            	// Do something spectacular
+	    return new (dromos.Bootstrap.Plugin.extend(
+	        {
+	            load : function(toModule)
+	            {
+	            	// Do something spectacular
 
-            	// Call the superclass load
-            	this._load(toModule);
-            }
-        }
-    ));
-});
+	            	// Call the superclass load
+	            	this._load(toModule);
+	            }
+	        }
+	    ));
+	});
 `
 
 
@@ -105,17 +107,17 @@ The following methods are available for overriding:
 ## Accessing jquery, underscore, or backbone
 jQuery, underscore, or backbone can be accessed either by including in a define or require e.g.:
 `
-require(["underscore"], function(_)
-{
-	// do something with underscore using the '_' variable name.
-});
+	require(["underscore"], function(_)  
+	{
+		// do something with underscore using the '_' variable name.
+	});
 `
 
 or they can be accessed without including in require or define by accessing from the dromos namespace e.g.:
 `
-dromos._   // Underscore
-dromos.$bb // Backbone
-dromos.$jQ // jQuery
+	dromos._   // Underscore  
+	dromos.$bb // Backbone  
+	dromos.$jQ // jQuery  
 `
 While this is possible, it is not reccomended as the require and define are used to make it clear what is required for a specific module.
  
