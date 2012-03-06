@@ -3,8 +3,11 @@
 "in architecture, an entrance passage."
 
 ## What is dromos?
-dromos is javascript library that is AMD compliant which allows simple access to the Lintel back end.
-dromos makes use of Backbone, underscore, and jQuery.
+dromos is a JavaScript library used to interact with front and middle tiers in a multi tiered application.  dromos supports modular js development which can help to achieve faster and focused
+development.
+
+dromos is javascript library that is AMD compliant and the entire library makes use of Backbone, underscore, and jQuery.
+
 
 ## Usage
 To use the dromos library, simply include it in you page as you would any other javascript:
@@ -17,9 +20,8 @@ To preconfigure dromos, you can include a configuration object before the script
 &lt;script src="../dromos.bootstrap.js" type="text/javascript" charset="utf-8"&gt;&lt;/script&gt;
 
 To configure dromos after loading you can call require.config :
-`
+
 	require.config({debug : true});
-`
 
 ## Configuration options
 * debug, boolean, turns on or off debugging.  When debugging is on, console.debug will log to the console.
@@ -30,9 +32,9 @@ To configure dromos after loading you can call require.config :
 # Loading a module
 A module should be loaded using the require function, the require function takes an array of module paths
 which cn be absolute or relative based on the root directory:
-`
+
 	require(["dromos.utilities", "myModuleDir/myModule", "../myOtherModuleDir/myOtherModule"]);
-`
+
 
 Any modules that have not been loaded already will then be loaded, modules that have already been loaded will not be loaded a second time.
 
@@ -40,41 +42,39 @@ Any modules that have not been loaded already will then be loaded, modules that 
 Module Callbacks.  Any function passed as the second argument of require will be called only when
 all of the modules defined are loaded.  If modules can not be loaded for any reason, the callback will not
 be called.  Each parameter passed to the callback corresponds with the module that was required. e.g.:
-`
+
 	require(["dromos.utilities", "myModuleDir/myModule", "../myOtherModuleDir/myOtherModule"], 
 	function(toUtilities, toMyModule, toOtherModule)
 	{
 		// Do something relevent here!
 	});
-`
+
 
 It is also possible to load a single module by passing a string rather than an array e.g.:
-`
+
 	require("dromos.utilities");
-`
 
 And with callback:
-`
+
 	require("dromos.utilities", function(toUtilities)
 	{
 		// Do something with utilities
 	});
-`
+
 
 If the module name has .js included then relative paths will be from the document location rather than from the default root. e.g. :
-`
+
 	require("./myPage.Utilities.js", function(toUtilities)
 	{
 		// Do something with utilities
 	});
-`
+
 ## Creating a bootstrap plugin
 
 Plugins must be named dromos.Bootstrap.&lt;pluginName&gt;, and must be in the same directory as dromos.Bootstrap.js
 
 A plugin can be created by extending the dromos.Bootstrap.Plugin class, or any class the extends from the Plugin class.  e.g.:
 
-`
 	// dromos.Bootstrap.testPlugin.js file
 	define(function(){
 
@@ -90,7 +90,6 @@ A plugin can be created by extending the dromos.Bootstrap.Plugin class, or any c
 	        }
 	    ));
 	});
-`
 
 
 The following methods are available for overriding:
@@ -103,21 +102,69 @@ The following methods are available for overriding:
 * onError - called from onScriptError, usually this should be overridden instead of onScriptError
 * onComplete - called when a module notifies us that it has completed loading 
 
+## Creating a dymamic plugin
+Dynamic plugins are loaded when dromos is finished loading.  To mark an element as a dynamic plugin
+simply add a dromos-module attribute to the element:
+
+	<div dromos-module="myModule"/>
+
+This will cause require to be called on myModule, attempting to load myModule and initialise the div element as a myModule plugin.
+
+Plugins take the following form:
+
+	define(function($){
+		return {
+			init : function(toElement, toConfig, tnIndex)
+			{
+				// Initialise my plugin here
+			}
+		};
+	});
+
+The plugin init function will be called by dromos and the parameters passed are
+* toElement - the html element that is being initialised as the plugin
+* toConfig - configuration object for the plugin, or an empty object
+* tnIndex - the index of this element in the list of elements that are being initialised as this specific plugin
+
+By default the init function is called for initialisation, but this can be modified by supplying a 
+dromos-init attribute:
+
+	<div dromos-module="myModule" dromos-init="myInitFunction"/>
+
+In the example above, the function myInitFunction would be called instead of init when initialising
+the object, there is no change to the parameters
+
+The final configuration option is the ability to supply a configuration object to the plugin, this can
+be achieved by adding a dromos-config attribute to the element:
+
+	<script>
+		myConfigFunction = function(){
+			return {
+				option1: value1,
+				option2: value2
+			};
+		}
+	</script>
+
+	<div dromos-module="myModule" dromos-config="myConfigFunction"/>
+
+This will cause dromos to attempt to use the value retrieved from the myConfigFunction when calling the initialisation function.
+
 
 ## Accessing jquery, underscore, or backbone
 jQuery, underscore, or backbone can be accessed either by including in a define or require e.g.:
-`
+
 	require(["underscore"], function(_)  
 	{
 		// do something with underscore using the '_' variable name.
 	});
-`
+
 
 or they can be accessed without including in require or define by accessing from the dromos namespace e.g.:
-`
+
 	dromos._   // Underscore  
 	dromos.$bb // Backbone  
 	dromos.$jQ // jQuery  
-`
+
 While this is possible, it is not reccomended as the require and define are used to make it clear what is required for a specific module.
  
