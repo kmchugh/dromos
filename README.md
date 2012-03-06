@@ -3,8 +3,11 @@
 "in architecture, an entrance passage."
 
 ## What is dromos?
-dromos is javascript library that is AMD compliant which allows simple access to the Lintel back end.
-dromos makes use of Backbone, underscore, and jQuery.
+dromos is a JavaScript library used to interact with front and middle tiers in a multi tiered application.  dromos supports modular js development which can help to achieve faster and focused
+development.
+
+dromos is javascript library that is AMD compliant and the entire library makes use of Backbone, underscore, and jQuery.
+
 
 ## Usage
 To use the dromos library, simply include it in you page as you would any other javascript:
