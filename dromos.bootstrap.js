@@ -35,6 +35,7 @@ require.config({debug : true});
 	
 	// Ensure dromos is defined
     var g_oDromos = g_oBase["dromos"] = g_oBase["dromos"] || {};
+    g_oDromos.base = g_oBase;
 
     // Define some required utilities if they are not already loaded
     g_oDromos.utilities = g_oDromos.utilities || 
