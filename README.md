@@ -68,7 +68,7 @@ If the module name has .js included then relative paths will be from the documen
 		// Do something with utilities
 	});
 `
-## Creating a plugin
+## Creating a bootstrap plugin
 
 Plugins must be named dromos.Bootstrap.&lt;pluginName&gt;, and must be in the same directory as dromos.Bootstrap.js
 
