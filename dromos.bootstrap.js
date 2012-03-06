@@ -751,7 +751,7 @@ require.config({debug : true});
 	}
 
 	// Load the default dromos library
-	require(["underscore", "jquery", "backbone", "order!dromos"], function(dromos)
+	require(["underscore", "jquery", "backbone"], function(dromos)
 	{
 		// Clean up the namespaces
 		g_oDromos.$jQ = jQuery.noConflict();
@@ -762,7 +762,8 @@ require.config({debug : true});
 		define("underscore", [], function(){return g_oDromos._;});
 		define("backbone", [], function(){return g_oDromos.$bb;});
 
-		//require(["order!dromos"], function(){});
+        // This is here instead of in the require as the setup above is required for dromos
+		require(["order!dromos"], function(){});
 	});
 	
 })(this);

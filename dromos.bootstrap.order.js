@@ -2,6 +2,24 @@
 Ordering plugin for dromos bootstrap.
 
 This plugin will load any modules indicated in the order they are presented.
+
+    require(["dromos.utilities", "order!myModuleDir/myModule", "order!../myOtherModuleDir/myOtherModule"], 
+    function(toUtilities, toMyModule, toOtherModule)
+    {
+        // Do something relevent here!
+    });
+
+will ensure that myModule is loaded before myOtherModule
+
+This plugin supports mixed ordering
+
+    require(["dromos.utilities", "order!myModuleDir/myModule", "yetAnotherModule", "order!../myOtherModuleDir/myOtherModule"], 
+    function(toUtilities, toMyModule, toAnotherModule, toOtherModule)
+    {
+        // Do something relevent here!
+    });
+
+will ensure that myModule is loaded before myOtherModule, yetAnotherModule could be loaded at any time.
 ====================================*/
 define(function(){
     var m_aLoading = [];
