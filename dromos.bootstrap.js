@@ -698,7 +698,7 @@ require.config({debug : true});
                 definition : toCallback});
             if (!loModule.isCompleted())
             {
-                loModule.addLoadedCallback(toCallback);
+                loModule.insertLoadedCallback(toCallback);
                 loModule.plugin.load(loModule);
             }
         }
