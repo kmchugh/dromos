@@ -1,0 +1,3 @@
+[submodule "newsfeed"]
+	path = newsfeed
+	url = git@github.com:kmchugh/dromos-newsfeed.git
