@@ -38,6 +38,7 @@ define(["jquery", "dromos.utilities"], function($jQ, utilities)
 
 	dromos.addDOMNotifier = function(tnIndex, toElement)
 	{
+		
 		var loFNBefore = toElement.insertBefore;
 		toElement.insertBefore = function()
 		{
@@ -49,10 +50,11 @@ define(["jquery", "dromos.utilities"], function($jQ, utilities)
 			}
 			return loReturn;
 		}
+		
 		var loFNAppend = toElement.appendChild;
 		toElement.appendChild = function()
 		{
-			var loReturn = loFNBefore.apply(this, arguments);
+			var loReturn = loFNAppend.apply(this, arguments);
 			if (loReturn != null && $jQ(loReturn).parents(document).length >0)
 			{
 				dromos.addDOMNotifier(0, loReturn);
