@@ -38,25 +38,27 @@ define(["jquery", "dromos.utilities"], function($jQ, utilities)
 
 	dromos.addDOMNotifier = function(tnIndex, toElement)
 	{
-		var laFunctions = ['insertBefore', 'appendChild'];
-		for (var i=0, lnLength=laFunctions.length; i<lnLength; i++)
+		var loFNBefore = toElement.insertBefore;
+		toElement.insertBefore = function()
 		{
-			if (toElement[laFunctions[i]])
+			var loReturn = loFNBefore.apply(this, arguments);
+			if (loReturn != null && $jQ(loReturn).parents(document).length >0)
 			{
-				var lcFunction = laFunctions[i];
-				var loFunction = toElement[laFunctions[i]];
-					
-				toElement[lcFunction] = function()
-				{
-					var loReturn = loFunction.apply(this, arguments);
-					if (loReturn != null && $jQ(loReturn).parents(document).length >0)
-					{
-						dromos.addDOMNotifier(0, loReturn);
-						$jQ(this).trigger('domchildadded');
-					}
-					return loReturn;
-				};
+				dromos.addDOMNotifier(0, loReturn);
+				$jQ(this).trigger('domchildadded');
 			}
+			return loReturn;
+		}
+		var loFNAppend = toElement.appendChild;
+		toElement.appendChild = function()
+		{
+			var loReturn = loFNBefore.apply(this, arguments);
+			if (loReturn != null && $jQ(loReturn).parents(document).length >0)
+			{
+				dromos.addDOMNotifier(0, loReturn);
+				$jQ(this).trigger('domchildadded');
+			}
+			return loReturn;
 		}
 	}
 

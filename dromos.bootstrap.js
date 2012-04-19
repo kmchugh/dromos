@@ -20,7 +20,7 @@ require.config({debug : true});
 // dromos initialisation
 (function(toBase) {
 
-	var __VERSION__ = 0.1; // Version number, used in .js urls, so cache busting can be done by changing
+	var __VERSION__ = 0.15; // Version number, used in .js urls, so cache busting can be done by changing
 	var __DEBUG__ = false; // debug mode.  Can be configured by calling require.config({debug : true});
 
 	var g_oBase = toBase;  // usually reference to the window or server object
