@@ -163,18 +163,25 @@ require.config({debug : true});
     			else
     			{
     				// Module exists already so this is most likely a definition modification
-    				g_oBase.console.debug("Adjusting Module " + toModuleDef.name);
-    				if (toModuleDef.definition)
-    				{
-    					loModule.setDefinition(loModule.plugin.resolveDefinition(loModule, toModuleDef.definition));
-    				}
-    				// Add any new dependencies
-    				for (var i=0, lnLength=toModuleDef.dependencies.length; i<lnLength; i++)
+                    if (loModule.required)
                     {
-                        loModule.addDependency(toModuleDef.dependencies[i]);
+                        loModule.required = false;
                     }
-                    // Complete the module as it has now been defined
-                    loModule.complete();
+                    else
+                    {
+        				g_oBase.console.debug("Adjusting Module " + toModuleDef.name);
+        				if (toModuleDef.definition)
+        				{
+        					loModule.setDefinition(loModule.plugin.resolveDefinition(loModule, toModuleDef.definition));
+        				}
+        				// Add any new dependencies
+        				for (var i=0, lnLength=toModuleDef.dependencies.length; i<lnLength; i++)
+                        {
+                            loModule.addDependency(toModuleDef.dependencies[i]);
+                        }
+                        // Complete the module as it has now been defined
+                        loModule.complete();
+                    }
     			}
     			return loModule;
     		},
@@ -657,7 +664,17 @@ require.config({debug : true});
 	g_oBase["require"] = function(taModules, toCallback)
 	{
 		console.debug("REQUIRING : " + taModules);
-		return (g_oDromos.Bootstrap.loadModule(taModules, toCallback) || {getDefinition : function(){return null;}}).getDefinition();
+		var loModule = g_oDromos.Bootstrap.loadModule(taModules, toCallback);
+        if (loModule != null)
+        {
+            var loDef = loModule.getDefinition();
+            if (loDef == null)
+            {
+                loModule.required = true;
+            }
+            return loDef;
+        }
+        return null;
 	};
 
 	// Define the define function, clobbers any existing define
