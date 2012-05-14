@@ -16,7 +16,6 @@ For example, to turn on debugging, either declare the require object before load
 or to turn on debug after load, call the config method:
 require.config({debug : true});
 =============================*/
-
 // dromos initialisation
 (function(toBase) {
 

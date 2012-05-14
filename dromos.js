@@ -38,7 +38,6 @@ define(["jquery", "dromos.utilities"], function($jQ, utilities)
 
 	dromos.addDOMNotifier = function(tnIndex, toElement)
 	{
-		
 		var loFNBefore = toElement.insertBefore;
 		toElement.insertBefore = function()
 		{
