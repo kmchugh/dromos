@@ -68,21 +68,25 @@ define(["jquery", "dromos.utilities"], function($jQ, utilities)
 	$jQ('*').each(dromos.addDOMNotifier);
 	$jQ('*').on('domchildadded', function()
 			{
-				$jQ(this).find("[" + __DROMOS_PLUGIN__ + "]").each(function(tnIndex, toElement)
-				{
-					var loElement = $jQ(toElement);
-					var lcModule = loElement.attr(__DROMOS_PLUGIN__);
-					if (lcModule)
+				$jQ(function()
 					{
-						var lcInit = loElement.attr(__DROMOS_INIT__);
-						var lcConfig = loElement.attr(__DROMOS_CONFIG__);
-						loElement.removeAttr(__DROMOS_PLUGIN__).removeAttr(__DROMOS_INIT__).removeAttr(__DROMOS_CONFIG__);
-						require(lcModule, function(toModule)
+						$jQ(this).find("[" + __DROMOS_PLUGIN__ + "]").each(function(tnIndex, toElement)
+						{
+							var loElement = $jQ(toElement);
+							var lcModule = loElement.attr(__DROMOS_PLUGIN__);
+							if (lcModule)
 							{
-								dromos.utilities.initialiseModule(toModule, toElement, tnIndex, lcInit, dromos.base[lcConfig]);
-							});
+								var lcInit = loElement.attr(__DROMOS_INIT__);
+								var lcConfig = loElement.attr(__DROMOS_CONFIG__);
+								loElement.removeAttr(__DROMOS_PLUGIN__).removeAttr(__DROMOS_INIT__).removeAttr(__DROMOS_CONFIG__);
+								require(lcModule, function(toModule)
+									{
+										dromos.utilities.initialiseModule(toModule, toElement, tnIndex, lcInit, dromos.base[lcConfig]);
+									});
+							}
+						});
 					}
-				});
+				);
 		});
 
 	// return the dromos object for future require calls
