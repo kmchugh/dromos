@@ -41,6 +41,7 @@ define(["jquery", "dromos.utilities"], function($jQ, utilities)
 		var loFNBefore = toElement.insertBefore;
 		toElement.insertBefore = function()
 		{
+			dromos.addDOMNotifier._notified = true;
 			var loReturn = loFNBefore.apply(this, arguments);
 			if (loReturn != null && $jQ(loReturn).parents(document).length >0)
 			{
@@ -53,6 +54,7 @@ define(["jquery", "dromos.utilities"], function($jQ, utilities)
 		var loFNAppend = toElement.appendChild;
 		toElement.appendChild = function()
 		{
+			dromos.addDOMNotifier._notified = true;
 			var loReturn = loFNAppend.apply(this, arguments);
 			if (loReturn != null && $jQ(loReturn).parents(document).length >0)
 			{
@@ -63,6 +65,27 @@ define(["jquery", "dromos.utilities"], function($jQ, utilities)
 		}
 	}
 
+	dromos.prepareModule = function(toSelector)
+	{
+		$jQ(toSelector).find("[" + __DROMOS_PLUGIN__ + "]").each(
+			function(tnIndex, toElement)
+				{
+					var loElement = $jQ(toElement);
+					var lcModule = loElement.attr(__DROMOS_PLUGIN__);
+					if (lcModule)
+					{
+						var lcInit = loElement.attr(__DROMOS_INIT__);
+						var lcConfig = loElement.attr(__DROMOS_CONFIG__);
+						loElement.removeAttr(__DROMOS_PLUGIN__).removeAttr(__DROMOS_INIT__).removeAttr(__DROMOS_CONFIG__);
+						require(lcModule, function(toModule)
+							{
+								dromos.utilities.initialiseModule(toModule, toElement, tnIndex, lcInit, dromos.base[lcConfig]);
+							});
+					}
+				});
+	}
+
+	dromos.prepareModule(document);
 
 	// Update all elements to notify of dom changes
 	$jQ('*').each(dromos.addDOMNotifier);
@@ -70,24 +93,12 @@ define(["jquery", "dromos.utilities"], function($jQ, utilities)
 			{
 				$jQ(function()
 					{
-						$jQ(this).find("[" + __DROMOS_PLUGIN__ + "]").each(function(tnIndex, toElement)
-						{
-							var loElement = $jQ(toElement);
-							var lcModule = loElement.attr(__DROMOS_PLUGIN__);
-							if (lcModule)
-							{
-								var lcInit = loElement.attr(__DROMOS_INIT__);
-								var lcConfig = loElement.attr(__DROMOS_CONFIG__);
-								loElement.removeAttr(__DROMOS_PLUGIN__).removeAttr(__DROMOS_INIT__).removeAttr(__DROMOS_CONFIG__);
-								require(lcModule, function(toModule)
-									{
-										dromos.utilities.initialiseModule(toModule, toElement, tnIndex, lcInit, dromos.base[lcConfig]);
-									});
-							}
-						});
+						dromos.prepareModule(this);
 					}
 				);
 		});
+
+	
 
 	// return the dromos object for future require calls
 	return dromos;
