@@ -78,27 +78,20 @@ define(["jquery", "dromos.utilities"], function($jQ, utilities)
 						var lcConfig = loElement.attr(__DROMOS_CONFIG__);
 						loElement.removeAttr(__DROMOS_PLUGIN__).removeAttr(__DROMOS_INIT__).removeAttr(__DROMOS_CONFIG__);
 						require(lcModule, function(toModule)
-							{
+							{	
 								dromos.utilities.initialiseModule(toModule, toElement, tnIndex, lcInit, dromos.base[lcConfig]);
 							});
 					}
 				});
 	}
 
-	dromos.prepareModule(document);
-
 	// Update all elements to notify of dom changes
 	$jQ('*').each(dromos.addDOMNotifier);
 	$jQ('*').on('domchildadded', function()
 			{
-				$jQ(function()
-					{
-						dromos.prepareModule(this);
-					}
-				);
-		});
-
-	
+				dromos.prepareModule(this);
+			});
+	$jQ(function(){dromos.prepareModule(document);});
 
 	// return the dromos object for future require calls
 	return dromos;
