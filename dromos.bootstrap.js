@@ -504,15 +504,16 @@ require.config({debug : true});
                     {
                         // Make sure we are ready
                         var loTag = document.createElement("script");
-                        loTag.src = lcURL;
                         loTag.type = "text/javascript";
                         loTag.charset = "utf-8";
-                        //loTag.async = true;
+                        loTag.async = true;
                         loTag.module = toModule;
                         toModule.setTag(loTag);
                         g_oDromos.utilities.addEventListener(loTag, toModule.plugin.onScriptLoaded, typeof(loTag.readyState) != 'undefined' ? "readystatechange" : "load");
                         g_oDromos.utilities.addEventListener(loTag, toModule.plugin.onScriptError, "error");
                         document.getElementsByTagName("head")[0].appendChild(loTag);
+                        // Setting the src AFTER adding to the dom is on purpose to deal with some IE inconsistancies
+                        loTag.src = lcURL;
                     }
                 }
             },
@@ -530,7 +531,7 @@ require.config({debug : true});
             onScriptLoaded : function(toEvent)
             {
                 var loTag = toEvent.currentTarget || toEvent.srcElement;
-                if (toEvent.type === "load" || (loTag && /^(complete|loaded)$/.test(loTag.readyState)));
+                if (toEvent.type === "load" || (loTag && /^(complete)$/.test(loTag.readyState)));
                 {
                     if (!loTag.readyState)
                     {
