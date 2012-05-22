@@ -85,6 +85,18 @@ define(["jquery"],
         	return null;
         },
 
+        // Returns true if the element passed is attached to the document
+        isAttachedToDom : function(toElement)
+        {
+            var loAncestor = toElement;
+            while(loAncestor.parentNode)
+            {
+                loAncestor = loAncestor.parentNode;
+            }
+            return !!(loAncestor.body);
+
+        },
+
         // Adds an event listener to the element specified
         addEventListener : (function(){
         	return dromos.base.addEventListener ?
@@ -113,7 +125,7 @@ define(["jquery"],
         {
             toInitFunction = toInitFunction || "init";
             toInitConfig = this.isType(toInitConfig, "Function") ? toInitConfig.call(null, toElement) : toInitConfig || {};
-            if (toModule[toInitFunction])
+            if (toModule && toModule[toInitFunction])
             {
                 toModule[toInitFunction].apply(toModule, [toElement, toInitConfig, tnIndex]);
             };

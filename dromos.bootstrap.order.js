@@ -29,7 +29,7 @@ define(function(){
             load : function(toModule)
             {
                 // If the module is already loaded then there is nothing to do
-                if (!toModule.isLoading() && !toModule.isCompleted())
+                if (!toModule.getTag() && !toModule.isCompleted())
                 {
                     if (m_aLoading.indexOf(toModule.getName()) < 0)
                     {
@@ -56,8 +56,7 @@ define(function(){
                 // Load the next one
                 if (m_aLoading.length > 0)
                 {
-                    var loModule = dromos.Bootstrap.getModule(m_aLoading[0]);
-                    loModule.plugin.load(loModule);
+                    loModule.plugin.load(dromos.Bootstrap.getModule(m_aLoading[0]));
                 }
             }
         }
