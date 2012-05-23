@@ -28,6 +28,7 @@ define(function(){
         {
             load : function(toModule)
             {
+                console.debug("Load module " + toModule.getName() + " with order plugin");
                 // If the module is already loaded then there is nothing to do
                 if (!toModule.getTag() && !toModule.isCompleted())
                 {

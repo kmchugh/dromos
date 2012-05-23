@@ -19,8 +19,8 @@ require.config({debug : true});
 // dromos initialisation
 (function(toBase) {
 
-    var __VERSION__ = 0.2; // Version number, used in .js urls, so cache busting can be done by changing
-    var __DEBUG__ = true; // debug mode.  Can be configured by calling require.config({debug : true});
+    var __VERSION__ = 0.21; // Version number, used in .js urls, so cache busting can be done by changing
+    var __DEBUG__ = false; // debug mode.  Can be configured by calling require.config({debug : true});
 
     var g_oBase = toBase;  // usually reference to the window or server object
 
@@ -63,15 +63,34 @@ require.config({debug : true});
             // Adds an event listener to the element specified
             addEventListener : (function(){
                 return g_oBase.addEventListener ?
-                    function(toElement, toCallback, tcEventType){toElement.addEventListener(tcEventType, function(e){toCallback(e)}, false);} :
-                    function(toElement, toCallback, tcEventType){toElement.attachEvent("on" + tcEventType, function(e){toCallback(window.event)});};
+                    function(toElement, toCallback, tcEventType)
+                    {
+                        toElement['_'+tcEventType+'Handler'] = toElement['_'+tcEventType+'Handler'] || {};
+                        toElement['_'+tcEventType+'Handler'][toCallback.toString()] = toElement['_'+tcEventType+'Handler'][toCallback] || function(e){toCallback(e)};
+                        toElement.addEventListener(tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()], false);
+                    } :
+                    function(toElement, toCallback, tcEventType)
+                    {
+                        toElement['_'+tcEventType+'Handler'] = toElement['_'+tcEventType+'Handler'] || {};
+                        toElement['_'+tcEventType+'Handler'][toCallback.toString()] = toElement['_'+tcEventType+'Handler'][toCallback] || function(e){toCallback(window.event)};
+                        toElement.attachEvent("on" + tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()]);
+                    };
             })(),
             // Removes an event listener from the element specified
             // TODO: ensure this is removing the event
             removeEventListener : (function(){
                 return g_oBase.removeEventListener ?
-                    function(toElement, toCallback, tcEventType){toElement.removeEventListener(tcEventType, function(e){toCallback(e)}, false);} :
-                    function(toElement, toCallback, tcEventType){toElement.detachEvent("on" + tcEventType, function(e){toCallback(window.event)});};
+                    function(toElement, toCallback, tcEventType)
+                    {
+                        toElement.removeEventListener(tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()], false);
+                        delete toElement['_'+tcEventType+'Handler'][toCallback.toString()];
+                    } :
+                    function(toElement, toCallback, tcEventType)
+                    {
+                        toElement.detachEvent("on" + tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()]);
+                        delete toElement['_'+tcEventType+'Handler'][toCallback.toString()];
+                    };
+
             })(),
 
             // Takes a URL and "Cleans" it by adding to the url, the default is to add the version from cachebuster
@@ -90,6 +109,24 @@ require.config({debug : true});
 
         // The bootstrap object
         return {
+            getCurrentScript : function()
+            {
+                if (dromos.Bootstrap._interactive && dromos.Bootstrap._interactive.readyState ==='interactive')
+                {
+                    return dromos.Bootstrap._interactive;
+                }
+                var loScript = null, laScripts = document.getElementsByTagName('script');
+                for (var i=laScripts.length - 1; i >= 0 && (loScript = laScripts[i]); i--)
+                {
+                    if (loScript.readyState === 'interactive') 
+                    {
+                        return (dromos.Bootstrap._interactive = loScript);
+                    }
+                }
+                dromos.Bootstrap._interactive = null;
+                return null;
+            },
+
             /**
             * Loads the specified module and calls toCallback when the module and
             * the module dependencies are full loaded.  If tcModuleName is already
@@ -207,17 +244,19 @@ require.config({debug : true});
             // Occurs when a module completes loading
             this.onModuleLoaded = function(toModule, taArgs)
             {
+                console.debug("Package loaded " + m_cIdentifier);
                 m_nLoadedModules++;
                 if (m_nLoadedModules == m_aRequiredModules.length && m_fnCallback != null)
                 {
+                    var loSelf = this;
                     var laParams = [];
-                    for (var i=0, lnLength = m_aRequiredModules.length; i<lnLength; i++)
+                    for (var i=0, lnLength = m_fnCallback.length; i<lnLength; i++)
                     {
                         laParams.push(g_oDromos.Bootstrap.getModule(m_aRequiredModules[i]).getDefinition());
                     }
                     try
                     {
-                        m_fnCallback.apply(this, laParams);
+                        m_fnCallback.apply(loSelf, laParams);
                     }
                     catch (ex)
                     {
@@ -286,9 +325,7 @@ require.config({debug : true});
             this.setTag = function(toTag){m_oTag = toTag;};
             this.getTag = function(){return m_oTag;};
 
-            this.markCompleted = function(){m_lCompleteFlagged = true;};
-
-            this.isCompleted = function(){return (m_oTag && /^(complete)$/.test(m_oTag.readyState));}
+            this.isCompleted = function(){return (m_oTag && m_oTag.module == null);}
 
             // Gets an array of dependency objects which can be passed to a callback
             this.getCallbackArguments = function()
@@ -323,7 +360,6 @@ require.config({debug : true});
                     try
                     {
                         var loResult = m_aLoadedCallbacks[i].apply(this, laArgs);
-                        
                         if (loResult)
                         {
                             this.setDefinition(loResult);
@@ -422,30 +458,28 @@ require.config({debug : true});
         // GETS the URL for this module
         getURL : function(){return g_oDromos.utilities.cleanURL(g_oDromos.Bootstrap.getPath(this.getName(), this.getPath()));},
         // Notifies that this modules script has completed loading.
-        completedLoading : function(toDefinition)
+        completedLoading : function(toModuleDefinition, tnCount)
         {
-            // Add in any additional dependencies
-            if (toDefinition)
+            window.clearTimeout(this.timeout);
+            toModuleDefinition = toModuleDefinition || g_oDromos.Bootstrap._interactive;
+            if (toModuleDefinition)
             {
-                if (toDefinition.dependencies && toDefinition.dependencies.length > 0)
+                if (toModuleDefinition.dependencies && toModuleDefinition.dependencies.length > 0)
                 {
-                    for (var i=0, lnLength=toDefinition.dependencies.length; i<lnLength; i++)
+                    for (var i=0, lnLength=toModuleDefinition.dependencies.length; i<lnLength; i++)
                     {
-                        this.addDependency(toDefinition.dependencies[i]);
+                        this.addDependency(toModuleDefinition.dependencies[i]);
                     }
-                    toDefinition.dependencies = [];
+                    toModuleDefinition.dependencies = [];
                 }
-                this.addLoadedCallback(toDefinition.loadedCallback);
-                toDefinition.loadedCallback = null;
+                this.addLoadedCallback(toModuleDefinition.loadedCallback);
+                toModuleDefinition.loadedCallback = null;
             }
 
             // This can only be set as complete if all the dependencies are loaded
             var laDependencies = this.getDependencies();
             var laArgs = [];
-
-            // This script is finished loading.  If there are no dependencies, or 
-            // if all of the dependencies are loaded we can call the callbacks
-            if (laDependencies.length != 0)
+            if (laDependencies.length > 0)
             {
                 g_oBase.console.debug("Checking dependencies for " + this.getName());
                 for (var i=0, lnLength = laDependencies.length; i<lnLength; i++)
@@ -454,7 +488,7 @@ require.config({debug : true});
                     if (!loModule.isCompleted())
                     {
                         var loSelf = this;
-                        loModule.addLoadedCallback(function(){loSelf.completedLoading(toDefinition);});
+                        loModule.addLoadedCallback(function(){loSelf.completedLoading(toModuleDefinition);});
                         g_oBase.console.debug(loModule.getName() + " is not yet completed");
                         return;
                     }
@@ -462,15 +496,24 @@ require.config({debug : true});
                 }
             }
 
-            // If we got here then there were no dependencies, or they are all loaded
-            g_oBase.console.debug("Dependencies completed for " + this.getName());
-            if (toDefinition && toDefinition.definition)
+            if (toModuleDefinition && toModuleDefinition.definition && !this.getDefinition())
             {
-                this.setDefinition(dromos.utilities.isType(toDefinition.definition, "Function") ? toDefinition.definition.apply(this, laArgs) : toDefinition);
+                this.setDefinition(dromos.utilities.isType(toModuleDefinition.definition, "Function") ? toModuleDefinition.definition.apply(this, laArgs) : toModuleDefinition.definition);
             }
+
+            if (this.getTag().readyState && !this.getDefinition() && (!tnCount || tnCount <3))
+            {
+                var loSelf = this;
+                this.timeout = window.setTimeout(function(){loSelf.completedLoading(toModuleDefinition, (tnCount || 0)+1);}, 500);
+                return;
+            }
+
+            g_oBase.console.debug("Script for " + this.getName() + " completed loading [" + this.getTag().src + "]");
+            this.getTag().module = null;
+
+            // If this script has a value then complete, otherwise wait for a definition
             this.executeLoadedCallbacks();
             this.plugin.onCompleted(this);
-            this.markCompleted();
         }
     };
 
@@ -493,12 +536,6 @@ require.config({debug : true});
             {
                 if (!toModule.getTag())
                 {
-                    var lcURL = toModule.getURL();
-                    if (!/.js$|.js\?/i.test(lcURL))
-                    {
-                        lcURL = lcURL.replace(/(\?)|([^.js]$)/, "$2.js$1");
-                    }
-                    g_oBase.console.debug("Adding script for " + toModule.getName() + " ("+ lcURL + ")");
                     toModule.setTag(g_oDromos.utilities.getScript(lcURL));
                     if (toModule.getTag() == null)
                     {
@@ -509,11 +546,14 @@ require.config({debug : true});
                         loTag.async = true;
                         loTag.module = toModule;
                         toModule.setTag(loTag);
-                        g_oDromos.utilities.addEventListener(loTag, toModule.plugin.onScriptLoaded, typeof(loTag.readyState) != 'undefined' ? "readystatechange" : "load");
+                        g_oDromos.utilities.addEventListener(loTag, toModule.plugin.onScriptLoaded, loTag.detachEvent ? "readystatechange" : "load");
                         g_oDromos.utilities.addEventListener(loTag, toModule.plugin.onScriptError, "error");
                         document.getElementsByTagName("head")[0].appendChild(loTag);
+
+                        var lcURL = toModule.getURL();
                         // Setting the src AFTER adding to the dom is on purpose to deal with some IE inconsistancies
-                        loTag.src = lcURL;
+                        loTag.src = (!/.js$|.js\?/i.test(lcURL)) ? lcURL.replace(/(\?)|([^.js]$)/, "$2.js$1") : lcURL;
+                        g_oBase.console.debug("Added script for " + toModule.getName() + " ("+ loTag.src + ")");
                     }
                 }
             },
@@ -524,27 +564,19 @@ require.config({debug : true});
                 var loModule = loTag.module;
                 loModule.plugin.onError(loModule);
 
-                g_oDromos.utilities.removeEventListener(loTag, loTag.detachEvent ? "readystatechange" : "load", this.onScriptLoaded);
-                g_oDromos.utilities.removeEventListener(loTag, "error", this.onScriptError);
+                g_oDromos.utilities.removeEventListener(loTag, loModule.plugin.onScriptLoaded, loTag.detachEvent ? "readystatechange" : "load");
+                g_oDromos.utilities.removeEventListener(loTag, loModule.plugin.onError, "error");
             },
             // Executed when the script completes loading
             onScriptLoaded : function(toEvent)
             {
                 var loTag = toEvent.currentTarget || toEvent.srcElement;
-                if (toEvent.type === "load" || (loTag && /^(complete)$/.test(loTag.readyState)));
+                if (loTag.module && (toEvent.type === "load" || (loTag && /^(loaded|complete)$/.test(loTag.readyState))))
                 {
-                    if (!loTag.readyState)
-                    {
-                        loTag.readyState = "complete";
-                    }
                     var loModule = loTag.module;
-                    g_oBase.console.debug("Script for " + loModule.getName() + " completed loading [" + loTag.src + "]");
-                    g_oDromos.utilities.removeEventListener(loTag, loTag.detachEvent ? "readystatechange" : "load", this.onScriptLoaded);
-                    g_oDromos.utilities.removeEventListener(loTag, "error", this.onScriptError);
-                    loTag.module = null;
-                    var loDefinition = g_oDromos.Bootstrap.outstanding || null;
-                    g_oDromos.Bootstrap.outstanding = null;
-                    loModule.completedLoading(loDefinition);
+                    g_oDromos.utilities.removeEventListener(loTag, loModule.plugin.onScriptLoaded, loTag.detachEvent ? "readystatechange" : "load");
+                    g_oDromos.utilities.removeEventListener(loTag, loModule.plugin.onScriptError, "error");
+                    loModule.completedLoading();
                 }
             },
             // Executed when there is an error loading the script, can be overridden
@@ -614,34 +646,39 @@ require.config({debug : true});
                 });
             }
         }
-
         if (!llAnonymous && g_oDromos.utilities.isType(toCallback, "Object"))
         {
             loModule.setDefinition(toCallback);
         }
-        else if (!llAnonymous && g_oDromos.utilities.isType(toCallback, "Function") && taDependencies.length == 0)
+        else if (!llAnonymous && g_oDromos.utilities.isType(toCallback, "Function"))
         {
-            loModule.setDefinition(toCallback());
+            if (taDependencies.length == 0)
+            {
+                loModule.setDefinition(toCallback());
+            }
+            else
+            {
+                console.error("MODULE WITH DEPENDENCIES");
+            }
         }
         else
         {
-            if (llAnonymous)
-            {
-                console.debug("Anonymous function loaded...");
-                // An anonymous function
-                g_oDromos.Bootstrap.outstanding = {
+            var loInteractive = g_oDromos.Bootstrap.getCurrentScript();
+            var loModuleDef = {
                     dependencies : g_oDromos.utilities.isType(taDependencies, "Array") ? taDependencies : [],
                     definition : !g_oDromos.utilities.isType(taDependencies, "Array") || taDependencies.length == 0 ? toCallback : null,
                     loadedCallback : g_oDromos.utilities.isType(taDependencies, "Array") && taDependencies.length > 0 ? toCallback : null
                 };
+
+            if (loInteractive)
+            {
+                loInteractive.module.completedLoading(loModuleDef);
             }
             else
             {
-                // A named function with callbacks
-                console.error("DEFINE CALLBACK FUNCTION");
+                g_oDromos.Bootstrap._interactive = loModuleDef;
             }
         }
-        return;
     }
     g_oBase["define"].amd = {jQuery:true};
 
@@ -693,14 +730,15 @@ require.config({debug : true});
     }
 
     // Load the default dromos library
-    require(["underscore", "jquery", "backbone"], function(toUnderscore, jQuery, bb)
+    require(["jquery", "underscore", "backbone"], function(jQuery)
     {
+        define("dromos.bootstrap", g_oDromos);
+
         // Clean up the namespaces
         g_oDromos.$jQ = jQuery.noConflict();
         g_oDromos._ = _.noConflict();
         g_oDromos.$bb = Backbone.noConflict();
 
-        define("dromos.bootstrap", g_oDromos);
         define("underscore", [], function(){return g_oDromos._;});
         define("backbone", [], function(){return g_oDromos.$bb;});
 
@@ -709,6 +747,7 @@ require.config({debug : true});
         require(["jqueryui", "order!dromos"], function(){
             define("jqueryui", g_oDromos.$jQ);
         });
+        
     });
     
 })(this);

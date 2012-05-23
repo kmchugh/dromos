@@ -99,16 +99,35 @@ define(["jquery"],
 
         // Adds an event listener to the element specified
         addEventListener : (function(){
-        	return dromos.base.addEventListener ?
-        		function(toElement, toCallback, tcEventType){toElement.addEventListener(tcEventType, function(e){toCallback(e)}, false);} :
-        		function(toElement, toCallback, tcEventType){toElement.attachEvent("on" + tcEventType, function(e){toCallback(window.event)});};
+            return window.addEventListener ?
+                function(toElement, toCallback, tcEventType)
+                {
+                    toElement['_'+tcEventType+'Handler'] = toElement['_'+tcEventType+'Handler'] || {};
+                    toElement['_'+tcEventType+'Handler'][toCallback.toString()] = toElement['_'+tcEventType+'Handler'][toCallback] || function(e){toCallback(e)};
+                    toElement.addEventListener(tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()], false);
+                } :
+                function(toElement, toCallback, tcEventType)
+                {
+                    toElement['_'+tcEventType+'Handler'] = toElement['_'+tcEventType+'Handler'] || {};
+                    toElement['_'+tcEventType+'Handler'][toCallback.toString()] = toElement['_'+tcEventType+'Handler'][toCallback] || function(e){toCallback(window.event)};
+                    toElement.attachEvent("on" + tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()]);
+                };
         })(),
-		// Removes an event listener from the element specified
-		// TODO: ensure this is removing the event
+        // Removes an event listener from the element specified
+        // TODO: ensure this is removing the event
         removeEventListener : (function(){
-        	return dromos.base.removeEventListener ?
-        		function(toElement, toCallback, tcEventType){toElement.removeEventListener(tcEventType, function(e){toCallback(e)}, false);} :
-        		function(toElement, toCallback, tcEventType){toElement.detachEvent("on" + tcEventType, function(e){toCallback(window.event)});};
+            return window.removeEventListener ?
+                function(toElement, toCallback, tcEventType)
+                {
+                    toElement.removeEventListener(tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()], false);
+                    delete toElement['_'+tcEventType+'Handler'][toCallback.toString()];
+                } :
+                function(toElement, toCallback, tcEventType)
+                {
+                    toElement.detachEvent("on" + tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()]);
+                    delete toElement['_'+tcEventType+'Handler'][toCallback.toString()];
+                };
+
         })(),
 
         // Takes a URL and "Cleans" it by adding to the url, the default is to add the version from cachebuster
