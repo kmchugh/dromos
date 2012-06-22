@@ -129,7 +129,20 @@ define(["jquery"],
                 };
 
         })(),
+        /**
+        * Uses bit.ly to shorten the URL provided
+        **/
+        shortenURL : function(tcURL, tcUser, tcApiKey, tcCallback)
+        {
+            $jQ.getJSON("http://api.bitly.com/v3/shorten?callback=?",
+                {
+                    "format": "json",
+                    "apiKey": tcApiKey,
+                    "login": tcUser,
+                    "longUrl": encodeURI(tcUrl)
 
+                }, function(toResponse){toCallback(toResponse.data.url);});
+        },
         // Takes a URL and "Cleans" it by adding to the url, the default is to add the version from cachebuster
         cleanURL : function(tcURL)
             {return tcURL + (tcURL.indexOf("?") < 0 ? "?" : "&") + "version=" + dromos.Bootstrap["version"];},
