@@ -97,6 +97,95 @@ define(["jquery"],
 
         },
 
+        // Popup related functionallity
+        popup : {
+            popups : {},
+            lastSettings : {
+                'location': 'no',
+                'status': 'no',
+                'titlebar': 'no',
+                'toolbar': 'no',
+                'menubar': 'no',
+                'directories': 'no',
+                'resizable': 'no',
+                'scrollbars': 'no',
+                'width': '250',
+                'height': '250'
+            },
+
+            // Checks if the current window has been opened by javascript, if so returns true
+            isPopup : function(){return !!window.opener;},
+            // Gets the specified popup if it exists, or null
+            get : function(tcID){return this.popups[tcID] ? this.popups[tcID] : null;},
+            // Closes the specified popup, no op if no popup is found
+            close : function(tcID)
+            {
+                var loPopup = this.get(tcID);
+                if (loPopup != null)
+                {
+                    loPopup.close();
+                    this.popups[tcID] = null;
+                }
+            },
+            /**
+            * Pops up a window for the user and returns a reference to that window.
+            * if the popup is blocked then the user will be asked to disable their blocker and 
+            * try again.
+            * tcURL - the url to open
+            * tcID - the identity of the popup, if none is given a default will be used
+            * toOptions - the options to use for the window
+            * tlUseBlank - if the user has a popup blocker and the window is blocked, use _blank instead
+            **/
+            open : function(tcURL, tcID, toOptions, tlUseBlank)
+            {
+                // Prepare any defaults
+                if (!tcURL){tcURL = "";}
+                if (!tcID){tcID = "default";}
+
+                console.error(this.lastSettings);
+
+                // Merge the options with the default options
+                var loDefaults = this.lastSettings;
+                if (toOptions)
+                {
+                    for (var loProp in toOptions)
+                    {
+                         loDefaults[loProp] = toOptions[loProp];
+                    }
+                }
+                // Close previously opened popup
+                this.close(tcID);
+
+                // Create the popup string
+                var lcPopup = "";
+                for (var lcProp in loDefaults)
+                {
+                    lcPopup += lcProp + '=' + loDefaults[lcProp] + ',';
+                }
+                var loPopup = window.open(tcURL, tcID, lcPopup.substring(0, lcPopup.length-1));
+                if (loPopup)
+                {
+                    if (window.focus)
+                    {
+                        loPopup.focus();
+                        this.popups[tcID] = loPopup;
+                        return loPopup;
+                    }
+                }
+                else if (tlUseBlank)
+                {
+                    // Open the URL as a link with a blank target
+                    // TODO: Implement this
+                    alert('Please disable your pop-up blocker and try again.');
+                }
+                else
+                {
+                    alert('Please disable your pop-up blocker and try again.');
+                }
+                return null;
+            }
+        },
+
         // Adds an event listener to the element specified
         addEventListener : (function(){
             return window.addEventListener ?
