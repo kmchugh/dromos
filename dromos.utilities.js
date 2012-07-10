@@ -142,8 +142,6 @@ define(["jquery"],
                 if (!tcURL){tcURL = "";}
                 if (!tcID){tcID = "default";}
 
-                console.error(this.lastSettings);
-
                 // Merge the options with the default options
                 var loDefaults = this.lastSettings;
                 if (toOptions)
