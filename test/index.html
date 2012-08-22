@@ -1,47 +1,43 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<title>dromos Test page</title>
-		<script type="text/javascript">
-			require = {debug : true};
-		</script>
-		<script src="../dromos.bootstrap.js" type="text/javascript" charset="utf-8"></script>
-	</head>
-	<body>
-		<h1>Dromos Test Output</h1>
-		<div dromos-module="./testbed">
-			
-			TODO: Load the individual tests here.
+<head>
+	<!--
+		SETTING UP JSCoverage
 
-			// Config tests (change debug mode to test change in console.debug function)
+		- Download JSCoverage from 
+		- Follow instructions at http://siliconforks.com/jscoverage/manual.html
 
-			// Console Tests
+		- Start the server from the dromos directory
 
-			// Test loading of modules using all of the different methods
+		- Start Server with :  jscoverage-server --verbose or jscoverage-server &
 
-			// Test Bootstrap loadmodule
+		- Stop Server with : jscoverage-server --shutdown
 
-			// Test Bootstrap getModule
+		- Browse to http://localhost:8080/jscoverage.html?/test/index.html
+	-->
+	<meta charset="UTF-8" />
+	<title>Dromos Test Suite</title>
 
-			// Test Bootstrap addModule
+	<link rel="stylesheet" href="lib/qunit/qunit.css">
 
-			
+	<!-- Include Project Dependencies -->
 
-			// Test plugins
-
-			// Test order
-
-			// Test text
-
-			// Test style
-
-			// Test loading of modules through dromos-module
-
-			// Test configuration of module through dromos-config
-
-			// Test initialisation of module through dromos-init
+	<script src="lib/qunit/qunit.js"></script>
+	<script src="lib/qmock/qmock.js"></script>
 
 
-	    </div>
-	</body>
+	<!-- Include Project Files -->
+	<script src="../dromos.bootstrap.js"/>
+
+
+
+	<!-- Include Tests -->
+	<script src="dromosTests.js"></script>
+
+
+</head>
+<body>
+	<div id="qunit"></div>
+	<div id="qunit-fixture">test markup</div>
+</body>
 </html>
