@@ -17,8 +17,11 @@ or to turn on debug after load, call the config method:
 require.config({debug : true});
 =============================*/
 // dromos initialisation
-(function(toBase) {
 
+// Protects against when dromos is loaded in multiple script tags
+if (this["dromos"]){return;}
+
+(function(toBase) {
     var __VERSION__ = 0.21; // Version number, used in .js urls, so cache busting can be done by changing
     var __DEBUG__ = false; // debug mode.  Can be configured by calling require.config({debug : true});
 
@@ -31,7 +34,7 @@ require.config({debug : true});
         error : function(tcMessage){g_oBase.console.m_oConsole.error(tcMessage);},
         debug : function(tcMessage){g_oBase.console.m_oConsole.log(tcMessage);}
     };
-    
+
     // Ensure dromos is defined
     var g_oDromos = g_oBase["dromos"] = g_oBase["dromos"] || {};
     g_oDromos.base = g_oBase;

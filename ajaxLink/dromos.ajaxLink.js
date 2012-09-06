@@ -38,7 +38,7 @@ define(["jquery"], function($jQ)
             // The event to bind to for loading the ajax content, click is default
             loadEvent: 'click',
             // Used for jsonp callbacks
-            callbackMarker : "callback=?",
+            callbackMarker : "callback",
             // Expected return type
             dataType : "html",
             // The max wait before timing out the ajax request
@@ -56,6 +56,7 @@ define(["jquery"], function($jQ)
             // TODO: Ajaxify links in response
             // TODO: onSuccess return
             // TODO: onError
+            // TODO: Implement cross domain
             // TODO: onRequestStarted
             // TODO: onRequestTimedOut
             // TODO: once content loading/loaded, don't attempt to reload
@@ -97,12 +98,14 @@ define(["jquery"], function($jQ)
             {
                 this._isLoading = true;
 
+                var lcURL = this.getUrl();
+
                 $jQ.ajax({
                     type: this.options.method,
-                    url: this.getUrl(), // implement the following for jsonp + (tcURL.indexOf('?') >= 0 ? '&' : '?' ) + this.options.callbackMarker,
+                    url: this.getUrl(),
                     dataType: this.options.dataType,
+                    jsonp:this.options.callbackMarker,
                     global: false,
-                    crossDomain: true,
                     timeout: this.options.timeout,
                     cache : this.options.cache,
                     contentType : this.options.contentType,
@@ -116,6 +119,7 @@ define(["jquery"], function($jQ)
                     error : dromos.utilities.createCallback(
                             function(toXHR, tcStatus, toError)
                             {
+                                console.error(toXHR);
                                 console.error(toError);
                                 this.onError(tcStatus);
                             }, this),
@@ -123,7 +127,14 @@ define(["jquery"], function($jQ)
                             function(toData, tcStatus, toXHR)
                             {
                                 this.onSuccess(toData);
-                            }, this)
+                            }, this),
+                    beforeSend: dromos.utilities.createCallback(
+                        function(toXHR, taSettings)
+                        {
+                            console.error("Before send");
+                            console.error(toXHR);
+                            console.error(taSettings);
+                        }, this)
                 });
             }
         },
