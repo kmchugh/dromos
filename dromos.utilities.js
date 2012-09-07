@@ -85,20 +85,151 @@ define(["jquery"],
         	return null;
         },
 
+        // Returns true if the element passed is attached to the document
+        isAttachedToDom : function(toElement)
+        {
+            var loAncestor = toElement;
+            while(loAncestor.parentNode)
+            {
+                loAncestor = loAncestor.parentNode;
+            }
+            return !!(loAncestor.body);
+
+        },
+
+        // Popup related functionallity
+        popup : {
+            popups : {},
+            lastSettings : {
+                'location': 'no',
+                'status': 'no',
+                'titlebar': 'no',
+                'toolbar': 'no',
+                'menubar': 'no',
+                'directories': 'no',
+                'resizable': 'no',
+                'scrollbars': 'no',
+                'width': '250',
+                'height': '250'
+            },
+
+            // Checks if the current window has been opened by javascript, if so returns true
+            isPopup : function(){return !!window.opener;},
+            // Gets the specified popup if it exists, or null
+            get : function(tcID){return this.popups[tcID] ? this.popups[tcID] : null;},
+            // Closes the specified popup, no op if no popup is found
+            close : function(tcID)
+            {
+                var loPopup = this.get(tcID);
+                if (loPopup != null)
+                {
+                    loPopup.close();
+                    this.popups[tcID] = null;
+                }
+            },
+            /**
+            * Pops up a window for the user and returns a reference to that window.
+            * if the popup is blocked then the user will be asked to disable their blocker and 
+            * try again.
+            * tcURL - the url to open
+            * tcID - the identity of the popup, if none is given a default will be used
+            * toOptions - the options to use for the window
+            * tlUseBlank - if the user has a popup blocker and the window is blocked, use _blank instead
+            **/
+            open : function(tcURL, tcID, toOptions, tlUseBlank)
+            {
+                // Prepare any defaults
+                if (!tcURL){tcURL = "";}
+                if (!tcID){tcID = "default";}
+
+                // Merge the options with the default options
+                var loDefaults = this.lastSettings;
+                if (toOptions)
+                {
+                    for (var loProp in toOptions)
+                    {
+                         loDefaults[loProp] = toOptions[loProp];
+                    }
+                }
+                // Close previously opened popup
+                this.close(tcID);
+
+                // Create the popup string
+                var lcPopup = "";
+                for (var lcProp in loDefaults)
+                {
+                    lcPopup += lcProp + '=' + loDefaults[lcProp] + ',';
+                }
+                var loPopup = window.open(tcURL, tcID, lcPopup.substring(0, lcPopup.length-1));
+                if (loPopup)
+                {
+                    if (window.focus)
+                    {
+                        loPopup.focus();
+                        this.popups[tcID] = loPopup;
+                        return loPopup;
+                    }
+                }
+                else if (tlUseBlank)
+                {
+                    // Open the URL as a link with a blank target
+                    // TODO: Implement this
+                    alert('Please disable your pop-up blocker and try again.');
+                }
+                else
+                {
+                    alert('Please disable your pop-up blocker and try again.');
+                }
+                return null;
+            }
+        },
+
         // Adds an event listener to the element specified
         addEventListener : (function(){
-        	return dromos.base.addEventListener ?
-        		function(toElement, toCallback, tcEventType){toElement.addEventListener(tcEventType, function(e){toCallback(e)}, false);} :
-        		function(toElement, toCallback, tcEventType){toElement.attachEvent("on" + tcEventType, function(e){toCallback(window.event)});};
+            return window.addEventListener ?
+                function(toElement, toCallback, tcEventType)
+                {
+                    toElement['_'+tcEventType+'Handler'] = toElement['_'+tcEventType+'Handler'] || {};
+                    toElement['_'+tcEventType+'Handler'][toCallback.toString()] = toElement['_'+tcEventType+'Handler'][toCallback] || function(e){toCallback(e)};
+                    toElement.addEventListener(tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()], false);
+                } :
+                function(toElement, toCallback, tcEventType)
+                {
+                    toElement['_'+tcEventType+'Handler'] = toElement['_'+tcEventType+'Handler'] || {};
+                    toElement['_'+tcEventType+'Handler'][toCallback.toString()] = toElement['_'+tcEventType+'Handler'][toCallback] || function(e){toCallback(window.event)};
+                    toElement.attachEvent("on" + tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()]);
+                };
         })(),
-		// Removes an event listener from the element specified
-		// TODO: ensure this is removing the event
+        // Removes an event listener from the element specified
+        // TODO: ensure this is removing the event
         removeEventListener : (function(){
-        	return dromos.base.removeEventListener ?
-        		function(toElement, toCallback, tcEventType){toElement.removeEventListener(tcEventType, function(e){toCallback(e)}, false);} :
-        		function(toElement, toCallback, tcEventType){toElement.detachEvent("on" + tcEventType, function(e){toCallback(window.event)});};
-        })(),
+            return window.removeEventListener ?
+                function(toElement, toCallback, tcEventType)
+                {
+                    toElement.removeEventListener(tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()], false);
+                    delete toElement['_'+tcEventType+'Handler'][toCallback.toString()];
+                } :
+                function(toElement, toCallback, tcEventType)
+                {
+                    toElement.detachEvent("on" + tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()]);
+                    delete toElement['_'+tcEventType+'Handler'][toCallback.toString()];
+                };
 
+        })(),
+        /**
+        * Uses bit.ly to shorten the URL provided
+        **/
+        shortenURL : function(tcURL, tcUser, tcApiKey, tcCallback)
+        {
+            $jQ.getJSON("http://api.bitly.com/v3/shorten?callback=?",
+                {
+                    "format": "json",
+                    "apiKey": tcApiKey,
+                    "login": tcUser,
+                    "longUrl": encodeURI(tcUrl)
+
+                }, function(toResponse){toCallback(toResponse.data.url);});
+        },
         // Takes a URL and "Cleans" it by adding to the url, the default is to add the version from cachebuster
         cleanURL : function(tcURL)
             {return tcURL + (tcURL.indexOf("?") < 0 ? "?" : "&") + "version=" + dromos.Bootstrap["version"];},
@@ -113,7 +244,7 @@ define(["jquery"],
         {
             toInitFunction = toInitFunction || "init";
             toInitConfig = this.isType(toInitConfig, "Function") ? toInitConfig.call(null, toElement) : toInitConfig || {};
-            if (toModule[toInitFunction])
+            if (toModule && toModule[toInitFunction])
             {
                 toModule[toInitFunction].apply(toModule, [toElement, toInitConfig, tnIndex]);
             };

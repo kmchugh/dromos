@@ -36,29 +36,63 @@ define(["jquery", "dromos.utilities"], function($jQ, utilities)
         return loCurrent;
 	};
 
-	// Iniitialises any modules that are round in toElement, if toElement is not provided, this searched the document
-	dromos.initialiseModules = function(toElement)
+	dromos.addDOMNotifier = function(tnIndex, toElement)
 	{
-		toElement = $jQ(toElement || document);
-		toElement.find("[" + __DROMOS_PLUGIN__ + "]").each(function(tnIndex, toElement)
+		var loFNBefore = toElement.insertBefore;
+		toElement.insertBefore = function()
 		{
-			toElement = $jQ(toElement);
-			require(toElement.attr(__DROMOS_PLUGIN__), function(toModule)
-            {
-                utilities.initialiseModule(toModule, toElement, tnIndex, toElement.attr(__DROMOS_INIT__), dromos.base[toElement.attr(__DROMOS_CONFIG__)]);
-            });
-            // Remove the attribute so that we don't initialise again
-			toElement.removeAttr(__DROMOS_PLUGIN__);
-            
-        });
-	};
+			dromos.addDOMNotifier._notified = true;
+			var loReturn = loFNBefore.apply(this, arguments);
+			if (loReturn != null && $jQ(loReturn).parents(document).length >0)
+			{
+				dromos.addDOMNotifier(0, loReturn);
+				$jQ(this).trigger('domchildadded');
+			}
+			return loReturn;
+		}
+		
+		var loFNAppend = toElement.appendChild;
+		toElement.appendChild = function()
+		{
+			dromos.addDOMNotifier._notified = true;
+			var loReturn = loFNAppend.apply(this, arguments);
+			if (loReturn != null && $jQ(loReturn).parents(document).length >0)
+			{
+				dromos.addDOMNotifier(0, loReturn);
+				$jQ(this).trigger('domchildadded');
+			}
+			return loReturn;
+		}
+	}
 
+	dromos.prepareModule = function(toSelector)
+	{
+		$jQ(toSelector).find("[" + __DROMOS_PLUGIN__ + "]").each(
+			function(tnIndex, toElement)
+				{
+					var loElement = $jQ(toElement);
+					var lcModule = loElement.attr(__DROMOS_PLUGIN__);
+					if (lcModule)
+					{
+						var lcInit = loElement.attr(__DROMOS_INIT__);
+						var lcConfig = loElement.attr(__DROMOS_CONFIG__);
+						loElement.removeAttr(__DROMOS_PLUGIN__).removeAttr(__DROMOS_INIT__).removeAttr(__DROMOS_CONFIG__);
+						require(lcModule, function(toModule)
+							{	
+								dromos.utilities.initialiseModule(toModule, toElement, tnIndex, lcInit, dromos.base[lcConfig]);
+							});
+					}
+				});
+	}
 
-
-	// Initialise any plugins that exist on the page at this time
-	dromos.initialiseModules();
+	// Update all elements to notify of dom changes
+	$jQ('*').each(dromos.addDOMNotifier);
+	$jQ('*').on('domchildadded', function()
+			{
+				dromos.prepareModule(this);
+			});
+	$jQ(function(){dromos.prepareModule(document);});
 
 	// return the dromos object for future require calls
 	return dromos;
 });
-
