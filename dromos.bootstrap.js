@@ -19,7 +19,8 @@ require.config({debug : true});
 // dromos initialisation
 
 // Protects against when dromos is loaded in multiple script tags
-if (this["dromos"]){return;}
+if (!this["dromos"])
+{
 
 (function(toBase) {
     var __VERSION__ = 0.21; // Version number, used in .js urls, so cache busting can be done by changing
@@ -754,3 +755,4 @@ if (this["dromos"]){return;}
     });
     
 })(this);
+}
