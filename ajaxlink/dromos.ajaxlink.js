@@ -211,6 +211,7 @@ define(["jquery"], function($jQ)
     {
         init : function(toElement, toConfig, tnIndex)
         {
+            console.error(toElement);
             $jQ(toElement).ajaxLink(toConfig);
         }
     };

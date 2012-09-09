@@ -1,7 +1,9 @@
-module("TESTING MODULE");
+module("DROMOS MODULE");
 
 test("Default Options", function(){
 
-deepEqual(1, 2);
+
+
+
 
 });
