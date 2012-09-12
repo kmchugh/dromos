@@ -19,7 +19,7 @@ require.config({debug : true});
 // TODO: Document paths for defining static/alternate script locations
 // TODO: Document parameterising scripts using dromos?parameter1=test
 // TODO: Allow option of not loading jquery backbone or underscore through config
-// TODO: Add ability to specifie what happens if a module can not load by adding a second function parameter to require
+// TODO: Add ability to specify what happens if a module can not load by adding a second function parameter to require
 =============================*/
 
 
@@ -792,41 +792,6 @@ if (!this["_dromos_initialised"])
         /*****************************************************************************
          * END PLUGIN
         *****************************************************************************/
-
-
-
-
-
-
-
-
-
-        // Extends this class by creating a new class with the specified extension properties
-        // TODO: Refactor to general usage
-        /*
-        g_oDromos.Bootstrap.Plugin.extend = function(toSubclass)
-        {
-            var loPrototype = new this();
-            var loSuperClass = this.prototype;
-
-            for (var lcProperty in toSubclass)
-            {
-                if (loPrototype[lcProperty])
-                {
-                    loPrototype["_"+lcProperty] = loPrototype[lcProperty];
-                }
-                loPrototype[lcProperty] = toSubclass[lcProperty];
-            }
-            
-            function Class(){};
-            Class.prototype = loPrototype;
-            Class.prototype.constructor = Class;
-            Class.extend = arguments.callee;
-            return Class;
-        };
- */
-
-
 
         /*****************************************************************************
          * REQUIRE AND CONFIGURATION
