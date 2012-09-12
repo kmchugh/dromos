@@ -1,5 +1,11 @@
 module("DROMOS BOOTSTRAP MODULE");
 
+// And set up the path for the test modules
+require.config({
+    "debug" : false,
+    "paths" : {"testModule" : "test/modules"}
+});
+
 /**
  * Test ensures the require.config method is correctly setting properties on the Bootstrap object
  */
@@ -38,9 +44,9 @@ test("BOOTSTRAP : getDromosRoot", function()
 {
      var loDromosScriptTag = dromos.utilities.getScript("dromos.bootstrap.js");
      var lcDromosRootURL = dromos.utilities.getAttribute(loDromosScriptTag, 'dromos-root') || dromos.utilities.getAttribute(loDromosScriptTag, 'src').substring(0, loDromosScriptTag.src.indexOf("dromos.bootstrap.js"));
+
      QUnit.equal(lcDromosRootURL, dromos.Bootstrap.getDromosRoot());
      QUnit.ok(/.+\/$/.test(dromos.Bootstrap.getDromosRoot()));
-
 });
 
 /**
@@ -50,7 +56,6 @@ test("BOOTSTRAP : getDromosRoot", function()
 test("BOOTSTRAP : getBaseURI", function()
 {
     var lcRoot = dromos.Bootstrap.getBaseURI();
-    console.error(lcRoot);
     require.config({"baseURI" : "new/base/url"});
     QUnit.equal(dromos.Bootstrap.getBaseURI(), 'new/base/url/');
     QUnit.ok(/.+\/$/.test(dromos.Bootstrap.getBaseURI()));
@@ -72,7 +77,7 @@ test("BOOTSTRAP : normaliseName", function()
 {
     QUnit.equal(dromos.Bootstrap.normaliseName('jquery'), 'jquery');
     QUnit.equal(dromos.Bootstrap.normaliseName(['jquery']), 'jquery');
-    QUnit.equal(dromos.Bootstrap.normaliseName(['jquery', 'bootstrap']), 'jquery_bootstrap');
+    QUnit.equal(dromos.Bootstrap.normaliseName(['jquery', 'bootstrap']), 'jquery|bootstrap');
 });
 
 test("BOOTSTRAP : setModule", function()
@@ -108,6 +113,20 @@ test("BOOTSTRAP : loadModule", function()
     QUnit.equal(loModule.getName(), 'jquery');
 });
 
+test("BOOTSTRAP : createModule", function()
+{
+    QUnit.ok(!dromos.Bootstrap.hasModule('myCreateModuleTestModule'));
+
+    var loDef = {};
+    loModule = dromos.Bootstrap.createModule('myCreateModuleTestModule', loDef);
+
+    QUnit.ok(loModule.isLoaded());
+    QUnit.ok(dromos.Bootstrap.hasModule('myCreateModuleTestModule'));
+
+    loModule = dromos.Bootstrap.createModule('myCreateModuleTestModule_nodef');
+    QUnit.ok(!loModule.isLoaded());
+});
+
 test("BOOTSTRAP : addModule", function()
 {
     var loModuleProxy = {getName : function(){return "addModuleProxyModule";}};
@@ -123,16 +142,27 @@ test("BOOTSTRAP : addModule", function()
 test("BOOTSTRAP : setPath", function()
 {
     dromos.Bootstrap.setPath("myModule", 'my/custom/path');
-    QUnit.equal('my/custom/path', dromos.Bootstrap.getPath('myModule'));
+    QUnit.equal(dromos.Bootstrap.baseURI + 'my/custom/path', dromos.Bootstrap.getPath('myModule'));
 });
 
 test("BOOTSTRAP : getPath", function()
 {
     dromos.Bootstrap.setPath("myModule", 'my/custom/path');
-    QUnit.equal('my/custom/path', dromos.Bootstrap.getPath('myModule'));
+    QUnit.equal(dromos.Bootstrap.baseURI + 'my/custom/path', dromos.Bootstrap.getPath('myModule'));
     QUnit.equal(dromos.Bootstrap.getBaseURI() + 'myUndefinedModule', dromos.Bootstrap.getPath('myUndefinedModule'));
 
+    QUnit.equal(dromos.Bootstrap.baseURI + 'my/custom/path/object/test', dromos.Bootstrap.getPath('myModule/object/test'));
+
+
+
     QUnit.equal('path/to/myUndefinedModule', dromos.Bootstrap.getPath('myUndefinedModule', 'path/to/'));
+});
+
+test("BOOTSTRAP : getDefaultPlugin", function()
+{
+    var loPlugin = dromos.Bootstrap.getDefaultPlugin();
+    QUnit.ok(loPlugin !== null);
+    QUnit.equal(loPlugin, dromos.Bootstrap.getDefaultPlugin());
 });
 
 /**
@@ -168,7 +198,7 @@ test("MODULE CONSTRUCTOR TEST", function()
     QUnit.ok(!loModule.hasCallbacks());
 
     loModule = new dromos.Bootstrap.Module(['underscore', 'backbone']);
-    QUnit.equal(loModule.getName(), "underscore_backbone");
+    QUnit.equal(loModule.getName(), "underscore|backbone");
     QUnit.ok(!loModule.hasCallbacks());
 
     QUnit.throws(function()
@@ -178,92 +208,141 @@ test("MODULE CONSTRUCTOR TEST", function()
     "Module already exists");
 });
 
+test("MODULE : addCallback", function()
+{
+    var loCallback= function(){};
+    var loModule = new dromos.Bootstrap.Module(["addCallbackTestModule"], loCallback);
 
+    QUnit.equal(loCallback, loModule.getCallbacks()[0]);
+});
+
+test("MODULE : getResources", function()
+{
+    var laScripts = ["getScriptsTestModule"];
+    var loModule = new dromos.Bootstrap.Module(laScripts);
+
+    QUnit.equal(laScripts, loModule.getResources());
+});
+
+test("MODULE : load", function()
+{
+    var loDef = {};
+    loModule = dromos.Bootstrap.createModule('myLoadModuleTestModule');
+    QUnit.ok(!loModule.isLoading());
+    QUnit.ok(!loModule.isLoaded());
+
+    loModule.load();
+    QUnit.ok(loModule.isLoading());
+    QUnit.ok(!loModule.isLoaded());
+});
+
+
+
+module("DROMOS BOOTSTRAP REQUIRE MODULE");
+
+test("REQUIRE INLINE TEST", function()
+{
+    QUnit.equal(require('jquery'), dromos.$jQ);
+});
 
 /**
  * After dromos has loaded, jquery, jqueryui, backbone, and underscore should also have been loaded
  * @return {[type]} [description]
  */
-test("REQUIRE TEST", function()
+test("REQUIRE BASE TEST", function()
 {
-    /*
     QUnit.stop();
 
-     require(["jquery", "underscore", "backbone"], function($jQ, $_, $bb)
+    require(["jquery", "underscore", "backbone"], function($jQ, $_, $bb)
     {
         QUnit.equal(dromos.$jQ, $jQ);
         QUnit.equal(dromos._, $_);
         QUnit.equal(dromos.$bb, $bb);
-
         QUnit.start();
     });
-     */
 });
 
 
+// Turn on debug for tests
+require.config({"debug" : true});
 
-/*
-require(['moda', 'modb', 'modc'],
-    function($, canvas, sub)
+
+test("REQUIRE EXTERNAL LOAD TEST", function()
+{
+    QUnit.stop();
+    require("testModule/module1", function(toModule1)
     {
-        // do something
-    })
-
-//Inside file my/shirt.js:
-define({
-    color: "black",
-    size: "unisize"
+        QUnit.equal(toModule1.text, "my module 1");
+        QUnit.equal(toModule1.value, 23);
+        QUnit.start();
+    });
 });
 
-//my/shirt.js now does setup work
-//before returning its module definition.
-define(function () {
-    //Do setup work here
-
-    return {
-        color: "black",
-        size: "unisize"
-    }
+test("REQUIRE DEPENDENCY TEST", function()
+{
+    QUnit.stop();
+    require(["testModule/module1", "testModule/module2"], function(toModule1, toModule2)
+    {
+        QUnit.equal(toModule1.value + toModule2.value, 69);
+        QUnit.start();
+    });
 });
 
-//my/shirt.js now has some dependencies, a cart and inventory
-//module in the same directory as shirt.js
-define(["./cart", "./inventory"], function(cart, inventory) {
-        //return an object to define the "my/shirt" module.
-        return {
-            color: "blue",
-            size: "large",
-            addToCart: function() {
-                inventory.decrement(this);
-                cart.add(this);
-            }
-        }
-    }
-);
+module("DROMOS BOOTSTRAP DEFINE MODULE");
 
-//A module definition inside foo/title.js. It uses
-//my/cart and my/inventory modules from before,
-//but since foo/bar.js is in a different directory than
-//the "my" modules, it uses the "my" in the module dependency
-//name to find them. The "my" part of the name can be mapped
-//to any directory, but by default, it is assumed to be a
-//sibling to the "foo" directory.
-define(["my/cart", "my/inventory"],
-    function(cart, inventory) {
-        //return a function to define "foo/title".
-        //It gets or sets the window title.
-        return function(title) {
-            return title ? (window.title = title) :
-                   inventory.storeName + ' ' + cart.name;
-        }
-    }
-);
 
-//Explicitly defines the "foo/title" module:
-    define("foo/title",
-        ["my/cart", "my/inventory"],
-        function(cart, inventory) {
-            //Define foo/title object in here.
-       }
-    );*/
+test("DEFINE INLINE FUNCTION TEST", function()
+{
+    var loModuleDefinition = {};
+    var loFunction = function(){return loModuleDefinition;};
+
+    define("mydefine_inline_module", loFunction);
+
+    QUnit.equal(require('mydefine_inline_module'), loModuleDefinition);
+});
+
+test("DEFINE INLINE OBJECT TEST", function()
+{
+    var loModuleDefinition = {};
+    define("mydefine_inline_Object_module", loModuleDefinition);
+
+    QUnit.equal(require('mydefine_inline_Object_module'), loModuleDefinition);
+});
+
+test("DEFINE INCLUDED OBJECT TEST", function()
+{
+    QUnit.stop();
+    require("testModule/module1", function(toModule1)
+    {
+        QUnit.equal(toModule1.text, "my module 1");
+        QUnit.equal(toModule1.value, 23);
+        QUnit.start();
+    });
+});
+
+test("DEFINE INCLUDED FUNCTION TEST", function()
+{
+    QUnit.stop();
+    require("testModule/module2", function(toModule2)
+    {
+        QUnit.equal(toModule2.text, "my module 2");
+        QUnit.equal(toModule2.value, 46);
+        QUnit.start();
+    });
+});
+
+
+test("DEFINE DEPENDENCY TEST", function()
+{
+    QUnit.stop();
+    require(["testModule/module3"], function(toModule3)
+    {
+        QUnit.equal(toModule3.value, 69);
+        QUnit.start();
+    });
+});
+
+
+
+
 

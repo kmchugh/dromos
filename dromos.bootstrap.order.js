@@ -22,30 +22,39 @@ This plugin supports mixed ordering
 will ensure that myModule is loaded before myOtherModule, yetAnotherModule could be loaded at any time.
 ====================================*/
 define(function(){
+
     var m_aLoading = [];
 
     return new (dromos.Bootstrap.Plugin.extend(
         {
-            load : function(toModule)
+            onLoad : function(toModule)
             {
                 console.debug("Load module " + toModule.getName() + " with order plugin");
-                // If the module is already loaded then there is nothing to do
-                if (!toModule.getTag() && !toModule.isCompleted())
+                if (m_aLoading.indexOf(toModule.getName()) < 0)
                 {
-                    if (m_aLoading.indexOf(toModule.getName()) < 0)
-                    {
-                        m_aLoading.push(toModule.getName());
-                    }
-                    
-                    // If this is the top module on the list, start to load it
-                    if (m_aLoading[0] === toModule.getName())
-                    {
-                        this._load(toModule);
-                    }
+                    m_aLoading.push(toModule.getName());
+                }
+                // If this is the top module on the list, start to load it
+                if (m_aLoading[0] === toModule.getName())
+                {
+                    this.startLoad(toModule);
                 }
             },
-            onCompleted : function(toModule)
+            startLoad : function(toModule)
             {
+                var laResources = toModule.getResources();
+                if (laResources.length ==  1)
+                {
+                    this.loadResource(toModule, dromos.Bootstrap.normaliseName(laResources[0]));
+                }
+                else
+                {
+                    this._load(toModule);
+                }
+            },
+            onCompletedLoading : function(toModule)
+            {
+                console.error("HERE - ONCOMPLETED");
                 console.debug("Completed module " + toModule.getName() + " with order plugin");
                 // Clear out the loaded module
                 var lnIndex = m_aLoading.indexOf(toModule.getName());

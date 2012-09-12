@@ -17,6 +17,9 @@ or to turn on debug after load, call the config method:
 require.config({debug : true});
 
 // TODO: Document paths for defining static/alternate script locations
+// TODO: Document parameterising scripts using dromos?parameter1=test
+// TODO: Allow option of not loading jquery backbone or underscore through config
+// TODO: Add ability to specifie what happens if a module can not load by adding a second function parameter to require
 =============================*/
 
 
@@ -106,7 +109,7 @@ if (!this["_dromos_initialised"])
              */
             getAttribute : function(toElement, tcAttribute)
             {
-                if (toElement[tcAttribute])
+                if (toElement[tcAttribute] !== undefined)
                 {
                     return toElement[tcAttribute];
                 }
@@ -122,8 +125,7 @@ if (!this["_dromos_initialised"])
             },
 
             // Takes a URL and "Cleans" it by adding to the url, the default is to add the version from cachebuster
-            cleanURL : function(tcURL)
-                {return tcURL + (tcURL.indexOf("?") < 0 ? "?" : "&") + "version=" + g_oDromos.Bootstrap["version"];}
+            cleanURL : function(tcURL){return tcURL + (tcURL.indexOf("?") < 0 ? "?" : "&") + "version=" + g_oDromos.Bootstrap["version"];}
         };
 
         // Define the bootstrap
@@ -155,29 +157,20 @@ if (!this["_dromos_initialised"])
                  * @param  String or Array[String] taScripts the name of the scripts to normalise
                  * @return a string representation of the module name
                  */
-                normaliseName : function(taScripts)
-                {
-                    return (dromos.utilities.isType(taScripts, 'Array') ? taScripts : [taScripts]).join('_').toLowerCase();
-                },
+                normaliseName : function(taScripts){return (dromos.utilities.isType(taScripts, 'Array') ? taScripts : [taScripts]).join('|').toLowerCase().replace(/(^|\|)[^\!|\|]+\!/g, '$1');},
 
                 /**
                  * Adds the specified module to the Bootstrap.  If the module already exists, this will overwrite the existing module
                  * @param Module toModule the module to add
                  */
-                setModule : function(toModule)
-                {
-                    m_oModules[toModule.getName()] = toModule;
-                },
+                setModule : function(toModule){m_oModules[toModule.getName()] = toModule;},
 
                 /**
                  * Checks if the specified module is already in the list of modules
-                 * @param  Module toModule the module being added
+                 * @param  String or Module toModule the module being added
                  * @return true if the module already exists in the list of modules
                  */
-                hasModule : function(toModule)
-                {
-                    return m_oModules[toModule.getName()] !== undefined;
-                },
+                hasModule : function(toModule){return m_oModules[dromos.utilities.isType(toModule, 'String') ? this.normaliseName(toModule) : toModule.getName()] !== undefined;},
 
                 /**
                  * Adds a module to dromos.  If the module has previously been added this
@@ -201,10 +194,7 @@ if (!this["_dromos_initialised"])
                  * @param  String tcModuleName the name of the module to get
                  * @return The module or null if the module does not yet exist
                  */
-                getModule : function(tcModuleName)
-                {
-                    return m_oModules[tcModuleName] || null;
-                },
+                getModule : function(tcModuleName){return m_oModules[tcModuleName] || null;},
 
                 /**
                  * Gets the modules specified, if the module does not already exist it willl
@@ -214,134 +204,127 @@ if (!this["_dromos_initialised"])
                  */
                 loadModule : function(taModules)
                 {
-                    var lcName = this.normaliseName(taModules);
-                    return m_oModules[lcName] || new g_oDromos.Bootstrap.Module(taModules);
-                },
-
-                // Gets/sets the full path for the module specified
-                getPath : function(tcModuleName, tcRoot){return m_oPaths[tcModuleName] || (tcRoot || this.getBaseURI()) + tcModuleName.replace(/^.+\//g, "");},
-                setPath : function(tcModuleName, tcModulePath){m_oPaths[tcModuleName] = tcModulePath;},
-
-
-
-
-
-
-
-
-
-
-
-
-                 /**
-                * Adds the module specified to the list of modules that will be loaded.  Adding the same
-                * module multiple times will have no effect.
-                * toModuleDef should be an object with at least a name property
-                */
-               /*
-                addModule : function(toModuleDef)
-                {
-                    var loModule = this.getModule(toModuleDef.name);
-                    if (loModule === null)
+                    var loModule = m_oModules[this.normaliseName(taModules)];
+                    if (!loModule)
                     {
-                        // This is a new module
-                        loModule = new g_oDromos.Bootstrap.Module(
-                            {
-                                name : toModuleDef.name,
-                                dependencies : toModuleDef.dependencies || [],
-                                loadedCallback : toModuleDef.loadedCallback
-                            });
-                        m_oModules[loModule.getName()] = loModule;
-                        g_oBase.console.debug("Added module " + loModule.getName());
+                        loModule = new g_oDromos.Bootstrap.Module(taModules);
+                        loModule.load();
                     }
                     return loModule;
-                },
-                 */
-
-                getCurrentScript : function()
-                {
-                    if (dromos.Bootstrap._interactive && dromos.Bootstrap._interactive.readyState ==='interactive')
-                    {
-                        return dromos.Bootstrap._interactive;
-                    }
-                    var loScript = null, laScripts = document.getElementsByTagName('script');
-                    for (var i=laScripts.length - 1; i >= 0 && (loScript = laScripts[i]); i--)
-                    {
-                        if (loScript.readyState === 'interactive')
-                        {
-                            return (dromos.Bootstrap._interactive = loScript);
-                        }
-                    }
-                    dromos.Bootstrap._interactive = null;
-                    return null;
                 },
 
                 /**
-                * Loads the specified module and calls toCallback when the module and
-                * the module dependencies are full loaded.  If tcModuleName is already
-                * loaded then the callback will be called directly.  The callback
-                * will receive the module as the first parameter
-                */
-               /*
-                loadModule : function(tcModuleName, toCallback)
+                 * Creates a module but does not attempt to load the module from a script.
+                 * Generally this is used for defining a module and its content.
+                 * If a module of the name tcModuleName already exits, this call WILL overwrite that module
+                 * @param  String the name of the module
+                 * @return Module the module that has been created and set
+                 */
+                createModule : function(tcModuleName, toDefinition)
                 {
-                    var loModule = this.getModule(tcModuleName);
-                    if (loModule === null)
+                    tcModuleName = this.normaliseName(tcModuleName);
+                    if (g_oDromos.Bootstrap.hasModule(tcModuleName))
                     {
-                        g_oBase.console.debug("Loading " + tcModuleName + " for first time");
-                        // Get the module Shell
-                        loModule = g_oDromos.Bootstrap.addModule({name : tcModuleName,
-                                                            loadedCallback : toCallback});
-                        // Ask the module to load
-                        loModule.load();
+                        delete m_oModules[tcModuleName];
+                    }
+                    var loModule = new g_oDromos.Bootstrap.Module([tcModuleName]);
+                    if (toDefinition)
+                    {
+                        loModule.setDefinition(toDefinition);
+                    }
+                    g_oDromos.Bootstrap.setModule(loModule);
+                    return loModule;
+                },
+
+                // Gets/sets the full path for the module specified
+                getPath : function(tcModuleName, tcRoot)
+                {
+                    var lcReturn = null;
+                    if (/^http/i.test(tcModuleName))
+                    {
+                        console.debug("Determined path[" + tcModuleName + "] for : " + tcModuleName);
+                        return tcModuleName;
+                    }
+                    else if (/^\//.test(tcModuleName))
+                    {
+                        lcReturn = (tcRoot || this.getBaseURI()) + tcModuleName;
+                        console.debug("Determined path[" + lcReturn + "] for : " + tcModuleName);
+                        return lcReturn;
                     }
                     else
                     {
-                        g_oBase.console.debug("Retrieved " + tcModuleName);
-                        if (toCallback)
+                        var lcMap = tcModuleName;
+                        while (lcMap !== null)
                         {
-                            toCallback.apply(loModule);
+                            // Check for a path
+                            if (m_oPaths[lcMap])
+                            {
+                                lcReturn = this.getPath(m_oPaths[lcMap] + tcModuleName.replace(lcMap, ""));
+                                console.debug("Determined path[" + lcReturn + "] for : " + tcModuleName);
+                                return lcReturn;
+                            }
+
+                            // No path, check subpath
+                            var loMatch = lcMap.match(/(^.+\/)[^\/]+$/);
+                            if (loMatch && loMatch.length > 1)
+                            {
+                                lcMap = loMatch[1];
+                                if (/\/$/.test(lcMap))
+                                {
+                                    lcMap = lcMap.substring(0, lcMap.length-1);
+                                }
+                            }
+                            else
+                            {
+                                lcMap = null;
+                            }
                         }
+                        lcReturn = m_oPaths[tcModuleName] || (tcRoot || this.getBaseURI()) + tcModuleName;
+                        console.debug("Determined path[" + lcReturn + "] for : " + tcModuleName);
+                        return lcReturn;
                     }
-                    return loModule;
                 },
+                setPath : function(tcModuleName, tcModulePath){m_oPaths[tcModuleName] = tcModulePath;},
+
+                /**
+                 * Gets the default plugin, the default plugin is the plugin used when attempting to load multiple modules, it is also the plugin
+                 * that all other plugins will extend from when they are first created
+                 * @return Plugin the default plugin
                  */
-
-                // Gets the specified plugin, if the plugin does not exist, then loads the plugin
-                getDefaultPlugin : function()
-                {
-                    // If the plugin name is 'default' use the default plugin
-                    if (dromos.Bootstrap.defaultPlugin === null)
-                    {
-                        dromos.Bootstrap.defaultPlugin = new g_oDromos.Bootstrap.Plugin();
-                    }
-                    return dromos.Bootstrap.defaultPlugin;
-                }
-
+                getDefaultPlugin : function(){return g_oDromos.Bootstrap.defaultPlugin || (g_oDromos.Bootstrap.defaultPlugin = new g_oDromos.Bootstrap.Plugin());}
           };
      })(toBase);
 
 
         /*****************************************************************************
          * Module
-         * A Module is a group of scripts that are grouped together for a 
+         * A Module is a group of scripts that are grouped together for a
          * specific function.  A module can consist of a single script or a script with
          * dependencies.
          * Once all of the scripts in a module are loaded any callbacks
          * associated with the module are called
         *****************************************************************************/
-        g_oDromos.Bootstrap.Module = (function(taScripts, toCallback)
+        g_oDromos.Bootstrap.Module = (function(taResources, toCallback)
         {
-            var loModule = function(taScripts, toCallback)
+            var loModule = function(taResources, toCallback)
             {
-                if  (!dromos.utilities.isType(taScripts, 'Array') || taScripts.length == 0)
+                if  (!dromos.utilities.isType(taResources, 'Array') || taResources.length === 0)
                 {
-                    throw "Scripts not provided for Bootstrap Module";
+                    throw "Resources not provided for Bootstrap Module";
                 }
-                g_oBase.console.debug("Creating Module for " + taScripts);
 
-                var m_cName = g_oDromos.Bootstrap.normaliseName(taScripts);
+                var m_cName = g_oDromos.Bootstrap.normaliseName(taResources);
+                var m_aResources = taResources;
+                var m_aParents = [];
                 var m_aCallbacks = [];
+                var m_oDefinition = null;
+                var m_lLoading = false;
+                var m_lLoaded = false;
+                var m_aModules = [];
+                var m_aPlugins = taResources.length == 1 ? taResources[0].split('!') : [];
+                m_aPlugins.pop();
+
+                console.debug("creating Module for " + m_cName + " using plugins [" + m_aPlugins + "]");
 
                 /**
                  * Gets the normalised name of this module
@@ -353,7 +336,7 @@ if (!this["_dromos_initialised"])
                  * Checks if this module has any outstanding callbacks
                  * @return true if there are callbacks which have not yet been called
                  */
-                this.hasCallbacks = function(){console.error('CALLBACKS  ' + m_aCallbacks); return m_aCallbacks.length > 0;},
+                this.hasCallbacks = function(){return m_aCallbacks.length > 0;},
 
                 /**
                  * Private helper method to add callback to this module.
@@ -361,23 +344,182 @@ if (!this["_dromos_initialised"])
                  */
                 this._addCallback = function(toCallback){m_aCallbacks[m_aCallbacks.length] = toCallback;};
 
+                /**
+                 * Gets all of the callbacks associated with this module that have not yet been executed
+                 * @return Array[function] the callbacks which have not been executed
+                 */
+                this.getCallbacks = function(){return m_aCallbacks;};
 
+                /**
+                 * Creates an array of callback parameters, these parameters will be in the same order as the
+                 * scripts that were required by this module
+                 */
+                this.getCallbackParameters = function()
+                {
+                    var laParameters = [];
+                     for (var i=0, lnLength=m_aResources.length; i<lnLength; i++)
+                    {
+                        var loModule = g_oDromos.Bootstrap.getModule(dromos.Bootstrap.normaliseName(m_aResources[i]));
+                        laParameters[i] = (loModule && loModule.isLoaded()) ? loModule.getDefinition() : null;
+                    }
+                    if (this.getDefinition())
+                    {
+                        laParameters.unshift(this.getDefinition());
+                    }
+                    return laParameters;
+                };
+
+                /**
+                 * Executes all of the callbacks that are set for this module.  After this call
+                 * the callbacks will be cleared
+                 */
+                this.executeCallbacks = function()
+                {
+                    if (m_aCallbacks.length > 0)
+                    {
+                        console.debug("Executing callbacks for " + this.getName());
+                        var laParams = this.getCallbackParameters();
+                        for (var i=0, lnLength=m_aCallbacks.length; i<lnLength; i++)
+                        {
+                            var loCallback = m_aCallbacks[i];
+                            if (loCallback)
+                            {
+                                m_aCallbacks[i] = null;
+                                loCallback.apply(g_oBase, laParams);
+                            }
+                        }
+                        m_aCallbacks = [];
+                    }
+                };
+
+                /**
+                 * Notifies the parent modules that this module has completed
+                 */
+                this.notifyParents = function()
+                {
+                    for (var i=0, lnLength=m_aParents.length; i<lnLength; i++)
+                    {
+                        var loModule = m_aParents[i];
+                        if (loModule)
+                        {
+                            m_aParents[i] = null;
+                            loModule.notifyCompletion(this);
+                        }
+                    }
+                    m_aParents = [];
+                };
+
+                /**
+                 * Gets the plugins that this module needs to be loaded with
+                 * @return Array, a list of plugins, or an empty list if there are no plugins
+                 */
+                this.getPlugins = function(){return m_aPlugins;};
+
+                /**
+                 * Gets the list of scripts which have not yet been loaded
+                 * @return this list of scripts which are still required by this module
+                 */
+                this.getResources = function(){return m_aResources;};
+
+                /**
+                 * Checks if the module is loading, a module that is loading is one that has been asked
+                 * to load and has not yet loaded its scripts or not yet called its callback functions
+                 * @return Boolean true if this module is not loading
+                 */
+                this.isLoading = function(){return m_lLoading;};
+
+                /**
+                 * Checks if this module is loaded.  A loaded module is a module that has loaded all dependencies
+                 * and has already called any callback functions required for the script
+                 * @return Boolean true if the module is ready to be used
+                 */
+                this.isLoaded = function(){return m_lLoaded;};
+
+                /**
+                 * Marks this module as loaded
+                 */
+                this.markLoaded = function(){m_lLoading = !(m_lLoaded = true);};
+
+                /**
+                 * Helper method for marking the module as loaded.  This is really only used by define in order to mark
+                 * modules loaded that do not require any kind of script load.
+                 * @param Boolean tlLoading the state to set the module to
+                 */
+                this._setLoading = function(tlLoading){m_lLoading =tlLoading;};
+
+                /**
+                 * Adds a parent to this module.  A parent module is a module that is waiting to be informed when this module has completed loading.
+                 * If the module is already a parent it will not be added again
+                 * @param Module toModule
+                 */
+                this.addParent = function(toModule)
+                {
+                    console.debug("Adding parent " + toModule.getName() + " to module " + this.getName());
+                    for (var i=0, lnLength = m_aParents.length; i<lnLength; i++)
+                    {
+                        if (m_aParents[i] === toModule){return;}
+                    }
+                    m_aParents[m_aParents.length] =toModule;
+                };
+
+                /**
+                 * Notifies this module that one of its dependencies has completed.
+                 * @param  Module toModule The module that completed loading
+                 */
+                this.notifyCompletion = function(toModule)
+                {
+                    var i=0, lnLength = 0;
+                    for (i=0, lnLength = m_aResources.length; i<lnLength; i++)
+                    {
+                        m_aModules[i] = m_aModules[i] || null;
+                        if (dromos.Bootstrap.normaliseName(m_aResources[i]) === toModule.getName())
+                        {
+                            m_aModules[i] = toModule;
+                            console.debug("Notifying " + this.getName() + " that " + toModule.getName() + " has completed");
+                        }
+                    }
+
+                    // If all of the modules have been loaded then we are also complete
+                    for (i=0, lnLength = m_aModules.length; i<lnLength; i++)
+                    {
+                        if (m_aModules[i] === null)
+                        {
+                            return;
+                        }
+                    }
+                    this.onCompletedLoading();
+                };
+
+                /**
+                 * Gets/Sets the definition of this module
+                 * @param Object the defenition of this module
+                 */
+                this.getDefinition = function(){return m_oDefinition;};
+                this.setDefinition = function(toDefinition)
+                {
+                    m_oDefinition = toDefinition;
+                    // If we have a definition, then we are considered to be loaded
+                    if (m_oDefinition !== undefined && m_oDefinition !== null)
+                    {
+                        m_lLoaded = !(m_lLoading = false);
+                    }
+                };
 
                 if(toCallback)
                 {
                     this.addCallback(toCallback);
                 }
-
                 g_oDromos.Bootstrap.addModule(this);
             };
             return loModule;
         })();
 
+
         g_oDromos.Bootstrap.Module.prototype = {
             m_aCallbacks : [],
-            m_lIsLoaded : false,
+            m_oPlugin : null,
             /**
-             * Adds the specified callback to this module, if the module is already loaded then this 
+             * Adds the specified callback to this module, if the module is already loaded then this
              * will execute the callback
              * @param the callback function
              */
@@ -388,6 +530,7 @@ if (!this["_dromos_initialised"])
                     if (this.isLoaded())
                     {
                         console.debug("Executing callback for module [" + this.getName() + ']');
+                        toCallback.apply(g_oBase, this.getCallbackParameters());
                     }
                     else
                     {
@@ -396,403 +539,271 @@ if (!this["_dromos_initialised"])
                     }
                 }
             },
+            /**
+             * Loads the module if it is not already loaded.  Loading of a module is the act
+             * of loading all dependencies, then loading this module.  An isLoading flag
+             * is used to prevent against circular dependency locks
+             */
+            load : function()
+            {
+                if (!this.isLoading() && !this.isLoaded())
+                {
+                    console.debug("preparing to load " + this.getName());
+                    this._setLoading(true);
+                    this.getPlugin().load(this);
+                }
+            },
+            /**
+             * Gets the plugin for this midule
+             * @return Plugin the plugin to use to load this module
+             */
+            getPlugin : function(){return this.m_oPlugin || (this.m_oPlugin = g_oDromos.Bootstrap.getDefaultPlugin());},
 
             /**
-             * Checks if this module is fully loaded and ready to use.  A module is fully loaded
-             * when its script is loaded, all dependency scripts are loaded, and all callbacks
-             * have been called
-             * @return true if loaded, false otherwise
+             * Gets the path of the specified resource, taking in to account dependent paths for relative paths
+             * @param  String the resource to get the path for
+             * @return String the path to the resource
              */
-            isLoaded : function(){return this.m_lIsLoaded;}
+            getPath : function(tcResource)
+            {
+                // TODO: Implement relative to current module
+                return g_oDromos.Bootstrap.getPath(tcResource);
+            },
+
+            /**
+             * Occurs when the module has been notified by the bootstrap that its resource has completed loading
+             */
+            onCompletedLoading : function()
+            {
+                console.debug("Completed loading " + this.getName());
+                var loOutstanding = g_oDromos.Bootstrap._outstandingDefinition;
+                g_oDromos.Bootstrap._outstandingDefinition = null;
+                if (loOutstanding)
+                {
+                    console.debug("Anonymous module identified as " + this.getName());
+                    if (loOutstanding.dependencies && loOutstanding.dependencies.length > 0)
+                    {
+                        var loSelf = this;
+                        require(loOutstanding.dependencies, function()
+                        {
+                            loSelf.setDefinition(loOutstanding.callback.apply(g_oBase, arguments));
+                            loSelf.executeCallbacks();
+                            loSelf.markLoaded();
+                            loSelf.notifyParents();
+                        });
+                        return;
+                    }
+                    else if (loOutstanding.callback)
+                    {
+                        this.setDefinition(dromos.utilities.isType(loOutstanding.callback, "Function") ? loOutstanding.callback.call(g_oBase) : loOutstanding.callback);
+                    }
+                }
+                this.executeCallbacks();
+                this.markLoaded();
+                this.notifyParents();
+            }
         };
-
-
-
-
 
         /*****************************************************************************
         * END PACKAGE
         *****************************************************************************/
 
-        /**
-        * A Package is a list of required modules and a callback function that will be
-        * called when all of the modules in the package and their dependencies are fully loaded.
-        **/
-
-        /*
-        g_oDromos.Bootstrap.Package = (function(taModuleList, tfnCallback)
+        /*****************************************************************************
+         * PLUGIN
+         * A Plugin is used to load modules according to the rules of the plugin
+        *****************************************************************************/
+        g_oDromos.Bootstrap.Plugin = function(tcName)
         {
-            var loPackageConstructor = function(taModuleList, tfnCallback)
-            {
-                g_oBase.console.debug("Creating Package for " + taModuleList);
-                var m_fnCallback = tfnCallback || null;
-                var m_aRequiredModules = taModuleList;
-                var m_nLoadedModules = 0;
-                var m_cIdentifier = taModuleList;
+            var m_cName = tcName || "Default Plugin";
 
-                // Loads the modules that are required by the package
-                this.loadModules= function()
-                {
-                    var loSelf = this;
-                    for (var i=0, lnLength = m_aRequiredModules.length; i<lnLength; i++)
-                    {
-                        var lcKey = m_aRequiredModules[i].toLowerCase();
-                        m_aRequiredModules[i] = lcKey;
+             // Gets the name of this plugin
+            this.getName = function(){return m_cName;};
+        };
 
-                        g_oDromos.Bootstrap.loadModule(lcKey, function()
-                        {
-                            loSelf.onModuleLoaded(this, arguments);
-                        })
-                    }
-                }
-
-                // Occurs when a module completes loading
-                this.onModuleLoaded = function(toModule, taArgs)
-                {
-                    console.debug("Package loaded " + m_cIdentifier);
-                    m_nLoadedModules++;
-                    if (m_nLoadedModules == m_aRequiredModules.length && m_fnCallback != null)
-                    {
-                        var loSelf = this;
-                        var laParams = [];
-                        for (var i=0, lnLength = m_fnCallback.length; i<lnLength; i++)
-                        {
-                            laParams.push(g_oDromos.Bootstrap.getModule(m_aRequiredModules[i]).getDefinition());
-                        }
-                        try
-                        {
-                            m_fnCallback.apply(loSelf, laParams);
-                        }
-                        catch (ex)
-                        {
-                            console.error(ex.message);
-                            throw ex;
-                        }
-                    }
-                }
-
-                // Show a warning if the required modules have not all been loaded and modules and there is 
-                // no callback
-                if (m_fnCallback == null && m_aRequiredModules.length != m_nLoadedModules)
-                {
-                    console.log("No callback function was defined AND not all of the modules had previously been loaded");
-                }
-
-                // Force the Package to start loading
-                this.loadModules();
-            }
-            return loPackageConstructor;
-        })();
-         */
-/*
-        // The module definition
-        g_oDromos.Bootstrap.Module = (function(toModule)
+        g_oDromos.Bootstrap.Plugin.prototype =
         {
-            // Module constructor function
-            var loModuleDefinition = function(toModule)
+            /**
+             * Attempts to load the module specified by loading the resources required for that module
+             * @param  Module the module being loaded
+             */
+            load : function(toModule)
             {
-                g_oBase.console.debug("Creating module " + toModule.name);
-                var m_cName;
-                var m_cPath;
-                var m_oDefinition;
-                var m_aDependencies = [];
-                var m_aLoadedCallbacks = [];
-                var m_oTag;
-
-                // Gets the name of the module
-                this.getName = function(){return m_cName;};
-
-                // Gets the path of this module
-                this.getPath = function(){return m_cPath;};
-
-                // Gets the definition for this module, the defenition is the object the module represents
-                this.getDefinition = function(){return m_oDefinition;};
-                this.setDefinition = function(toDefinition){g_oBase.console.debug("modifying definition of " + this.getName());m_oDefinition = toDefinition;}
-
-                // Adds a dependency to this module
-                this.addDependency = function(tcName)
-                {   
-                    var loModule = g_oDromos.Bootstrap.loadModule(tcName);
-                    var lcModuleName = loModule.getName();
-                    if (this.indexOf(lcModuleName) <0)
-                    {
-                        console.debug("Adding dependency " + lcModuleName + " to " + this.getName());
-                        m_aDependencies.push(lcModuleName);
-                    }
-                };
-
-                // Gets all of the dependencies for this module
-                this.getDependencies = function(){return m_aDependencies;};
-
-                // Gets the index of the specified dependency
-                this.indexOf = function(tcModule){return m_aDependencies.indexOf(tcModule);};
-
-                // GET/SET the script tag that is associated with this module
-                this.setTag = function(toTag){m_oTag = toTag;};
-                this.getTag = function(){return m_oTag;};
-
-                this.isCompleted = function(){return (m_oTag && m_oTag.module == null);}
-
-                // Gets an array of dependency objects which can be passed to a callback
-                this.getCallbackArguments = function()
+                if (!toModule.isLoaded())
                 {
-                    var laDependencies = this.getDependencies();
-                    var loArgs = [];
-                    for (var i=0, lnLength = laDependencies.length; i<lnLength; i++)
-                    {
-                        loArgs[i] = g_oDromos.Bootstrap.getModule(laDependencies[i]).getDefinition();
-                        console.debug("pushed " + laDependencies[i] + "\n" + " to argument " + (i+1));
-                    }
-                    return loArgs;
+                    this.onLoad(toModule);
                 }
-
-                this.addLoadedCallback = function(toCallback)
-                {
-                    // Adds an additional callback function
-                    if (!toCallback){return;}
-
-                    g_oBase.console.debug("Adding callback to " + this.getName());
-                    m_aLoadedCallbacks.push(toCallback);
-                }
-
-                // This executes the callbacks when this module is completely loaded
-                this.executeLoadedCallbacks = function()
-                {
-                    g_oBase.console.debug("Executing callbacks for " + this.getName());
-                    for (var i=m_aLoadedCallbacks.length-1, lnLength = 0; i>=lnLength; i--)
-                    {
-                        var laArgs = this.getCallbackArguments();
-                        g_oBase.console.debug("Executing module " + this.getName() + " callback " + (i+1) + "/" + m_aLoadedCallbacks.length + "\n\targs: " + laArgs);
-                        try
-                        {
-                            var loResult = m_aLoadedCallbacks[i].apply(this, laArgs);
-                            if (loResult)
-                            {
-                                this.setDefinition(loResult);
-                            }
-                        }
-                        catch(ex)
-                        {
-                            console.error("Callback failed - \n" + m_aLoadedCallbacks[i] + "\n\n\n" + ex);
-                            throw ex;
-                        }
-                    }
-                    m_aLoadedCallbacks.length = 0;
-                }
-
-                // Initialisation 
-                var loInfo = g_oDromos.Bootstrap.Module.extractInfo(toModule.name);
-                var loSelf = this;
-                m_cName = loInfo.name;
-                m_cPath = loInfo.path;
-
-                if (toModule.loadedCallback)
-                {
-                    this.addLoadedCallback(toModule.loadedCallback);
-                }
-                this.plugin = loInfo.plugin === "" ? g_oDromos.Bootstrap.getDefaultPlugin() :
-                    {
-                        load : function(){
-                            this.load = function(){};
-                            require("dromos.bootstrap." + loInfo.plugin, 
-                                function(toPlugin)
-                                    {
-                                        loSelf.plugin = toPlugin;
-                                        loSelf.plugin.load(loSelf);
-                                    });
-                            }
-                    }
-
-                // Add the dependencies
-                for (var i=0, lnLength = (toModule.dependencies || []).length; i<lnLength; i++)
-                {
-                    this.addDependency(toModule.dependencies[i]);
-                }
-            };
-
-            // Add the extractInfo method to the Module
-            // Helper function to extract the name and path of the specified module
-            loModuleDefinition.extractInfo = function(tcModuleURL)
+            },
+            /**
+             * The actual loading mechanism for the plugin, this should be overriden in subclasses to give alternative load actions
+             * @param  Module the module being loaded
+             */
+            onLoad : function(toModule)
             {
-                tcModuleURL = tcModuleURL.toString().toLowerCase();
-                var loInfo = null;
-                if (/^\[.+/.test(tcModuleURL))
+                console.debug("loading module " + toModule.getName());
+                var laResources = toModule.getResources();
+                if (laResources.length ==  1)
                 {
-                    loInfo = {name : tcModuleURL,
-                                path : "",
-                                plugin : ""
-                            };
+                    // Extract Plugin info
+                    var laPlugins = toModule.getPlugins();
+                    if (laPlugins.length === 0)
+                    {
+                        g_oDromos.Bootstrap.getDefaultPlugin().loadResource(toModule, laResources[0]);
+                    }
+                    else
+                    {
+                        // TODO : For now, no chaining of plugins, this we will support later
+                        var lcPlugin = laPlugins[0];
+                        console.debug("using plugin dromos.bootstrap." + lcPlugin + " for " + toModule.getName());
+                        require("dromos.bootstrap." + lcPlugin, function(toPlugin)
+                        {
+                            console.debug("using the plugin " + lcPlugin + " to load the module");
+                            toPlugin.load(toModule);
+                        });
+                    }
                 }
                 else
                 {
-                    loInfo = {
-                                name : (tcModuleURL.replace(/^.+!|.js$/g, "")).replace(g_oDromos.Bootstrap.getDefaultRoot(), "").toLowerCase(),
-                                path : tcModuleURL.replace(/^.+!|[^/]+(.js)?$|^http[s]?:\/\/[^/]+/g, ""),
-                                plugin : tcModuleURL.replace(/!?[^!]+$/g, "")
-                            };
-                    loInfo.path = (/^[./]/.test(loInfo.path)) ? loInfo.path : g_oDromos.Bootstrap.getDefaultRoot() + loInfo.path;
-                }
-                return loInfo;
-            };
-            return loModuleDefinition;  
-        })();
-
-        */
-        /*
-        g_oDromos.Bootstrap.Module.prototype = {
-            // Asks the module plugin to load the module
-            load : function(){if (!this.loadDependencies()){this.plugin.load(this);}},
-            loadDependencies : function()
-            {
-                var laDependencies = this.getDependencies();
-                var llLoading = false;
-
-                for (var i=0, lnLength = laDependencies.length; i<lnLength; i++)
-                {
-                    var lcDependency = laDependencies[i];
-                    // Get the module
-                    var loModule = g_oDromos.Bootstrap.getModule(lcDependency);
-                    if (!loModule.isLoading())
+                    var laCompleted = [], i;
+                    for (i=0, lnLength = laResources.length; i<lnLength; i++)
                     {
-                        llLoading = loModule.plugin.load(loModule) || llLoading;
+                        console.debug("extracted dependency " + laResources[i] + " for " + toModule.getName());
+                        var loModule = g_oDromos.Bootstrap.loadModule([laResources[i]]);
+                        loModule.addParent(toModule);
+                        if (loModule.isLoaded())
+                        {
+                            laCompleted[laCompleted.length] = loModule;
+                        }
+                    }
+                    for (i=0, lnLength = laCompleted.length; i<lnLength; i++)
+                    {
+                        toModule.notifyCompletion(laCompleted[i]);
                     }
                 }
-                return llLoading;
             },
-            // GETS the URL for this module
-            getURL : function(){return g_oDromos.utilities.cleanURL(g_oDromos.Bootstrap.getPath(this.getName(), this.getPath()));},
-            // Notifies that this modules script has completed loading.
-            completedLoading : function(toModuleDefinition, tnCount)
+            /**
+             * Loads the resource specified,
+             * @param  Module toModule the module that is expecting the resource to be loaded
+             * @param  String tcResource the resource to load
+             */
+            loadResource : function(toModule, tcResource)
             {
-                window.clearTimeout(this.timeout);
-                toModuleDefinition = toModuleDefinition || g_oDromos.Bootstrap._interactive;
-                if (toModuleDefinition)
+                console.debug("loading resource " + tcResource);
+                // Default action is simply adding the script tag to the head
+                this.addScriptTag(toModule, tcResource);
+            },
+            /**
+             * The default extension to add to the resource for this plugin
+             * @return the extension including the '.'
+             */
+            getResourceExtension : function(){return '.js';},
+            /**
+             * Adds a script tag to load the resource specified, this will notify the module when the resource is loaded
+             * @param Module toModule the module that the resource is being loaded for
+             * @param String tcScriptName the name of the script being loaded
+             */
+            addScriptTag  : function(toModule, tcScriptName)
+            {
+                if (toModule._tag === undefined)
                 {
-                    if (toModuleDefinition.dependencies && toModuleDefinition.dependencies.length > 0)
+                    var lcScript = toModule.getPath(tcScriptName);
+                    var lcExt = this.getResourceExtension();
+                    var lcRegExpExt = lcExt.replace('.', '\\.');
+                    var loTestExp = new RegExp(lcRegExpExt + "$|" + lcRegExpExt + "\\?","i");
+                    var loReplaceExp = new RegExp("(\\?)|([^"+ lcRegExpExt +"].)$");
+                    lcScript = (loTestExp.test(lcScript)) ? lcScript : lcScript.replace(loReplaceExp, "$2" + lcExt + "$1");
+
+                    // See if the script has already been loaded
+                    toModule._tag = g_oDromos.utilities.getScript(lcScript);
+                    if (toModule._tag === null)
                     {
-                        for (var i=0, lnLength=toModuleDefinition.dependencies.length; i<lnLength; i++)
-                        {
-                            this.addDependency(toModuleDefinition.dependencies[i]);
-                        }
-                        toModuleDefinition.dependencies = [];
-                    }
-                    this.addLoadedCallback(toModuleDefinition.loadedCallback);
-                    toModuleDefinition.loadedCallback = null;
-                }
+                        var loSelf = this;
+                        console.debug("adding script " + lcScript);
+                        var loTag = document.createElement("script");
+                        loTag.type = "text/javascript";
+                        loTag.charset = "utf-8";
+                        loTag.async = true;
+                        loTag._module = toModule;
+                        toModule._tag = loTag;
+                        g_oDromos.utilities.addEventListener(loTag, function(toEvent){loSelf.onResourceLoaded.call(loSelf, toEvent);}, loTag.detachEvent ? "readystatechange" : "load");
+                        g_oDromos.utilities.addEventListener(loTag, function(toEvent){loSelf.onResourceError.call(loSelf, toEvent);}, "error");
+                        document.getElementsByTagName("head")[0].appendChild(loTag);
 
-                // This can only be set as complete if all the dependencies are loaded
-                var laDependencies = this.getDependencies();
-                var laArgs = [];
-                if (laDependencies.length > 0)
-                {
-                    g_oBase.console.debug("Checking dependencies for " + this.getName());
-                    for (var i=0, lnLength = laDependencies.length; i<lnLength; i++)
+                        // Setting the src AFTER adding to the dom is on purpose to deal with some IE inconsistancies
+                        loTag.src = (!/.js$|.js\?/i.test(lcScript)) ? lcScript.replace(/(\?)|([^.js]$)/, "$2.js$1") : lcScript;
+                        g_oBase.console.debug("Added script for " + toModule.getName() + " ("+ loTag.src + ")");
+                    }
+                    else
                     {
-                        var loModule = g_oDromos.Bootstrap.getModule(laDependencies[i]);
-                        if (!loModule.isCompleted())
-                        {
-                            var loSelf = this;
-                            loModule.addLoadedCallback(function(){loSelf.completedLoading(toModuleDefinition);});
-                            g_oBase.console.debug(loModule.getName() + " is not yet completed");
-                            return;
-                        }
-                        laArgs[i] = loModule;
+                        console.debug("script " + lcScript + " has already been added");
+                        this.onResourceLoaded({"currentTarget" : toModule._tag});
                     }
                 }
-
-                if (toModuleDefinition && toModuleDefinition.definition && !this.getDefinition())
+            },
+            onResourceLoaded : function(toEvent)
+            {
+                var loTag = toEvent.currentTarget || toEvent.srcElement;
+                if (loTag && loTag._module && (toEvent.type === "load" || (loTag && /^(loaded|complete)$/.test(loTag.readyState))))
                 {
-                    this.setDefinition(dromos.utilities.isType(toModuleDefinition.definition, "Function") ? toModuleDefinition.definition.apply(this, laArgs) : toModuleDefinition.definition);
+                    var loModule = loTag._module;
+                    g_oDromos.Bootstrap._outstandingModule = loModule;
+                    g_oDromos.utilities.removeEventListener(loTag, function(toEvent){loSelf.onResourceLoaded.call(this, toEvent);}, loTag.detachEvent ? "readystatechange" : "load");
+                    g_oDromos.utilities.removeEventListener(loTag, function(toEvent){loSelf.onResourceError.call(this, toEvent);}, "error");
+                    loModule.onCompletedLoading();
+                    this.onCompleted(loModule);
                 }
-
-                if (this.getTag().readyState && !this.getDefinition() && (!tnCount || tnCount <3))
+            },
+            onResourceError : function(toEvent)
+            {
+                var loTag = toEvent.currentTarget || toEvent.srcElement;
+                if (loTag && loTag._module)
                 {
-                    var loSelf = this;
-                    this.timeout = window.setTimeout(function(){loSelf.completedLoading(toModuleDefinition, (tnCount || 0)+1);}, 500);
-                    return;
+                    var loModule = loTag._module;
+                    g_oDromos.utilities.removeEventListener(loTag, function(toEvent){loSelf.onResourceLoaded.call(this, toEvent);}, loTag.detachEvent ? "readystatechange" : "load");
+                    g_oDromos.utilities.removeEventListener(loTag, function(toEvent){loSelf.onResourceError.call(this, toEvent);}, "error");
+                    this.onError(loModule);
                 }
+            },
+            // Executed when there is an error loading the script, can be overridden
+            onError : function(toModule){g_oBase.console.error(toModule.getName() + " was not loaded");},
+            // Occurs once the module has completed loading
+            onCompleted : function(toModule){g_oBase.console.debug(toModule.getName() + " is completed");}
+        };
 
-                g_oBase.console.debug("Script for " + this.getName() + " completed loading [" + this.getTag().src + "]");
-                this.getTag().module = null;
+        g_oDromos.Bootstrap.Plugin.extend = function(toSubclass)
+        {
+            var loPrototype = new this();
+            var loSuperClass = this.prototype;
 
-                // If this script has a value then complete, otherwise wait for a definition
-                this.executeLoadedCallbacks();
-                this.plugin.onCompleted(this);
+            for (var lcProperty in toSubclass)
+            {
+                if (loPrototype[lcProperty])
+                {
+                    loPrototype["_"+lcProperty] = loPrototype[lcProperty];
+                }
+                loPrototype[lcProperty] = toSubclass[lcProperty];
             }
+            function Class(){}
+            Class.prototype = loPrototype;
+            Class.prototype.constructor = Class;
+            Class.extend = arguments.callee;
+            return Class;
         };
 
-        */
+        /*****************************************************************************
+         * END PLUGIN
+        *****************************************************************************/
 
-        // Default plugin, any plugins should inherit from this object, by default this plugin will load
-        // .js files
-        g_oDromos.Bootstrap.Plugin = function(){
-            return {
-                // Loads the module specified if it is not already loaded
-                load : function(toModule){
-                    if (!toModule.loadDependencies())
-                    {
-                        // Dependencies are loaded and complete, load this dependency
-                        this.addScriptTag(toModule);
-                    }
-                },
-                /***
-                 * Adds the script tag to the page
-                 */
-                addScriptTag : function(toModule)
-                {
-                    if (!toModule.getTag())
-                    {
-                        toModule.setTag(g_oDromos.utilities.getScript(lcURL));
-                        if (toModule.getTag() == null)
-                        {
-                            // Make sure we are ready
-                            var loTag = document.createElement("script");
-                            loTag.type = "text/javascript";
-                            loTag.charset = "utf-8";
-                            loTag.async = true;
-                            loTag.module = toModule;
-                            toModule.setTag(loTag);
-                            g_oDromos.utilities.addEventListener(loTag, toModule.plugin.onScriptLoaded, loTag.detachEvent ? "readystatechange" : "load");
-                            g_oDromos.utilities.addEventListener(loTag, toModule.plugin.onScriptError, "error");
-                            document.getElementsByTagName("head")[0].appendChild(loTag);
 
-                            var lcURL = toModule.getURL();
-                            // Setting the src AFTER adding to the dom is on purpose to deal with some IE inconsistancies
-                            loTag.src = (!/.js$|.js\?/i.test(lcURL)) ? lcURL.replace(/(\?)|([^.js]$)/, "$2.js$1") : lcURL;
-                            g_oBase.console.debug("Added script for " + toModule.getName() + " ("+ loTag.src + ")");
-                        }
-                    }
-                },
-                // Executed when there is an error loading the script
-                onScriptError : function(toEvent)
-                {
-                    var loTag = (toEvent.currentTarget || toEvent.srcElement);
-                    var loModule = loTag.module;
-                    loModule.plugin.onError(loModule);
 
-                    g_oDromos.utilities.removeEventListener(loTag, loModule.plugin.onScriptLoaded, loTag.detachEvent ? "readystatechange" : "load");
-                    g_oDromos.utilities.removeEventListener(loTag, loModule.plugin.onError, "error");
-                },
-                // Executed when the script completes loading
-                onScriptLoaded : function(toEvent)
-                {
-                    var loTag = toEvent.currentTarget || toEvent.srcElement;
-                    if (loTag.module && (toEvent.type === "load" || (loTag && /^(loaded|complete)$/.test(loTag.readyState))))
-                    {
-                        var loModule = loTag.module;
-                        g_oDromos.utilities.removeEventListener(loTag, loModule.plugin.onScriptLoaded, loTag.detachEvent ? "readystatechange" : "load");
-                        g_oDromos.utilities.removeEventListener(loTag, loModule.plugin.onScriptError, "error");
-                        loModule.completedLoading();
-                    }
-                },
-                // Executed when there is an error loading the script, can be overridden
-                onError : function(toModule){g_oBase.console.error(toModule.getName() + " was not loaded")},
-                // Occurs once the module has completed loading
-                onCompleted : function(toModule){g_oBase.console.debug(toModule.getName() + " is completed")}
-            };  
-        };
+
+
+
+
+
+
         // Extends this class by creating a new class with the specified extension properties
         // TODO: Refactor to general usage
+        /*
         g_oDromos.Bootstrap.Plugin.extend = function(toSubclass)
         {
             var loPrototype = new this();
@@ -813,7 +824,7 @@ if (!this["_dromos_initialised"])
             Class.extend = arguments.callee;
             return Class;
         };
-
+ */
 
 
 
@@ -846,16 +857,13 @@ if (!this["_dromos_initialised"])
         g_oBase["require"] = function(taModules, toCallback)
         {
             console.debug("REQUIRING : " + taModules);
-
-            // Make sure it is a package we are attempting to load
-            taModules = dromos.utilities.isType(taModules, "Array") ? taModules : [taModules];
-
-            // Get the package
-            var loModule = g_oDromos.Bootstrap.loadModule(taModules);
-            loModule.addCallback(toCallback);
-
+            var loModule = g_oDromos.Bootstrap.loadModule(dromos.utilities.isType(taModules, "Array") ? taModules : [taModules]);
+            if (toCallback)
+            {
+                loModule.addCallback(toCallback);
+            }
             // Return the module, this is for calls such as "require('jquery')" which do not need a callback
-            return loModule.isLoaded()  && loModule.moduleCount() == 1 ?loModule.getModuleDefinition(0) : null;
+            return loModule.isLoaded() ? loModule.getDefinition(0) : null;
         };
 
         /**
@@ -911,79 +919,53 @@ if (!this["_dromos_initialised"])
          * END REQUIRE AND CONFIGURATION
         *****************************************************************************/
 
+        /*****************************************************************************
+         * DEFINE
+        *****************************************************************************/
 
-        // Define the define function, clobbers any existing define
-        g_oBase["define"] = function(tcModuleName, taDependencies, toCallback)
+        g_oBase['define'] = function(tcModuleName, taDependencies, toCallback)
         {
+            // Normalise the parameters
             toCallback = toCallback || taDependencies || tcModuleName;
             taDependencies = g_oDromos.utilities.isType(taDependencies, "Array") ? taDependencies :
                 g_oDromos.utilities.isType(tcModuleName, "Array") ? tcModuleName : [];
-            llAnonymous = !g_oDromos.utilities.isType(tcModuleName, "String");
-            tcModuleName = llAnonymous ? "anonymous" : tcModuleName;
+            tcModuleName = g_oDromos.utilities.isType(tcModuleName, "String") ? tcModuleName : null;
 
-            console.debug("DEFINING " + tcModuleName + " as " + (g_oDromos.utilities.isType(toCallback, "Function") ? "Function" : "Object") + " with " + taDependencies);
-            var loModule = llAnonymous ? null : g_oDromos.Bootstrap.getModule(tcModuleName);
-            if (loModule == null)
+            if (tcModuleName)
             {
-                // Create the module
-                if (!llAnonymous)
-                {
-                    loModule = g_oDromos.Bootstrap.addModule({
-                        name : tcModuleName,
-                        dependencies : taDependencies
-                    });
-                }
-            }
-            if (!llAnonymous && g_oDromos.utilities.isType(toCallback, "Object"))
-            {
-                loModule.setDefinition(toCallback);
-            }
-            else if (!llAnonymous && g_oDromos.utilities.isType(toCallback, "Function"))
-            {
-                if (taDependencies.length == 0)
-                {
-                    loModule.setDefinition(toCallback());
-                }
-                else
-                {
-                    console.error("MODULE WITH DEPENDENCIES");
-                }
+                // In this case we are specifically defining a module.  If a module of this name already exists it WILL be overwritten
+                console.debug("DEFINING " + tcModuleName + " as " + (typeof(toCallback)) + " with [" + taDependencies + ']');
+                g_oDromos.Bootstrap.createModule(tcModuleName, g_oDromos.utilities.isType(toCallback, "Function") ? toCallback.apply(this) : toCallback);
             }
             else
             {
-                var loInteractive = g_oDromos.Bootstrap.getCurrentScript();
-                var loModuleDef = {
-                        dependencies : g_oDromos.utilities.isType(taDependencies, "Array") ? taDependencies : [],
-                        definition : !g_oDromos.utilities.isType(taDependencies, "Array") || taDependencies.length == 0 ? toCallback : null,
-                        loadedCallback : g_oDromos.utilities.isType(taDependencies, "Array") && taDependencies.length > 0 ? toCallback : null
-                    };
-
-                if (loInteractive)
-                {
-                    loInteractive.module.completedLoading(loModuleDef);
-                }
-                else
-                {
-                    g_oDromos.Bootstrap._interactive = loModuleDef;
-                }
+                // This is an anonymous module, a define from a script load
+                console.debug("DEFINING anonymous module as " + (g_oDromos.utilities.isType(toCallback, "Function") ? "Function" : "Object") + " with [" + taDependencies + ']');
+                g_oDromos.Bootstrap._outstandingDefinition = {"dependencies" : taDependencies,
+                                                                                                "callback" : toCallback};
             }
-        }
+
+
+        };
         g_oBase["define"].amd = {jQuery:true};
 
-        
+        /*****************************************************************************
+         * END DEFINE
+        *****************************************************************************/
 
-        
 
-        // Load the default dromos library
+        /**
+         * There are issues with underscore and backbone in an AMD environment, the following function
+         * ensures that they are loaded (and accessible)
+         * */
         require(["jquery", "underscore", "backbone"], function(jQuery)
         {
-            define("dromos.bootstrap", g_oDromos);
-
             // Clean up the namespaces
             g_oDromos.$jQ = jQuery.noConflict();
             g_oDromos._ = _.noConflict();
             g_oDromos.$bb = Backbone.noConflict();
 
+            // Define the modules in dromos
             define("underscore", [], function(){return g_oDromos._;});
             define("backbone", [], function(){return g_oDromos.$bb;});
 
@@ -992,8 +974,6 @@ if (!this["_dromos_initialised"])
             require(["jqueryui", "order!dromos"], function(){
                 define("jqueryui", g_oDromos.$jQ);
             });
-            
         });
-        
     })(this);
 }
