@@ -194,7 +194,7 @@ if (!this["_dromos_initialised"])
                  * @param  String tcModuleName the name of the module to get
                  * @return The module or null if the module does not yet exist
                  */
-                getModule : function(tcModuleName){return m_oModules[tcModuleName] || null;},
+                getModule : function(tcModuleName){return m_oModules[this.normaliseName(tcModuleName)] || null;},
 
                 /**
                  * Gets the modules specified, if the module does not already exist it willl
@@ -257,9 +257,9 @@ if (!this["_dromos_initialised"])
                         while (lcMap !== null)
                         {
                             // Check for a path
-                            if (m_oPaths[lcMap])
+                            if (m_oPaths[lcMap.toLowerCase()])
                             {
-                                lcReturn = this.getPath(m_oPaths[lcMap] + tcModuleName.replace(lcMap, ""));
+                                lcReturn = this.getPath(m_oPaths[lcMap.toLowerCase()] + tcModuleName.replace(lcMap, ""));
                                 console.debug("Determined path[" + lcReturn + "] for : " + tcModuleName);
                                 return lcReturn;
                             }
@@ -284,7 +284,7 @@ if (!this["_dromos_initialised"])
                         return lcReturn;
                     }
                 },
-                setPath : function(tcModuleName, tcModulePath){m_oPaths[tcModuleName] = tcModulePath;},
+                setPath : function(tcModuleName, tcModulePath){m_oPaths[tcModuleName.toLowerCase()] = tcModulePath;},
 
                 /**
                  * Gets the default plugin, the default plugin is the plugin used when attempting to load multiple modules, it is also the plugin
@@ -884,6 +884,7 @@ if (!this["_dromos_initialised"])
                 // Turn debugging messages on or off
                 if (loConfig['debug'] !== undefined)
                 {
+                    console.debug("Turning debug " + (loConfig["debug"] ? " ON " : " OFF "));
                     g_oBase.console.debug = loConfig['debug'] ? function(tcMessage){g_oBase.console.log(tcMessage);} :function(){};
                 }
 

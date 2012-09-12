@@ -29,13 +29,16 @@ define(function(){
         {
             onLoad : function(toModule)
             {
-                console.debug("Load module " + toModule.getName() + " with order plugin");
-                if (m_aLoading.indexOf(toModule.getName()) < 0)
+                var lcName = toModule.getName();
+                console.debug("Load module " + lcName + " with order plugin");
+
+                if (m_aLoading.indexOf(lcName) < 0)
                 {
-                    m_aLoading.push(toModule.getName());
+                    m_aLoading.push(lcName);
                 }
+
                 // If this is the top module on the list, start to load it
-                if (m_aLoading[0] === toModule.getName())
+                if (m_aLoading[0] === lcName)
                 {
                     this.startLoad(toModule);
                 }
@@ -52,23 +55,23 @@ define(function(){
                     this._load(toModule);
                 }
             },
-            onCompletedLoading : function(toModule)
+            onCompleted : function(toModule)
             {
-                console.error("HERE - ONCOMPLETED");
-                console.debug("Completed module " + toModule.getName() + " with order plugin");
+                console.debug(toModule.getName() + " is completed with order plugin");
                 // Clear out the loaded module
                 var lnIndex = m_aLoading.indexOf(toModule.getName());
                 if (lnIndex >= 0)
                 {
                     m_aLoading.splice(lnIndex,1);
                 }
-                
+
                 // Load the next one
                 if (m_aLoading.length > 0)
                 {
-                    loModule.plugin.load(dromos.Bootstrap.getModule(m_aLoading[0]));
+                    console.debug("Order plugin is loading module " + m_aLoading[0]);
+                    this.startLoad(dromos.Bootstrap.getModule(m_aLoading[0]));
                 }
             }
         }
-    ));
+    ))();
 });

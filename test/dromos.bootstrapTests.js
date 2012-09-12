@@ -2,7 +2,6 @@ module("DROMOS BOOTSTRAP MODULE");
 
 // And set up the path for the test modules
 require.config({
-    "debug" : false,
     "paths" : {"testModule" : "test/modules"}
 });
 
@@ -82,18 +81,18 @@ test("BOOTSTRAP : normaliseName", function()
 
 test("BOOTSTRAP : setModule", function()
 {
-    var loModuleProxy = {getName : function(){return "Module";}};
+    var loModuleProxy = {getName : function(){return "module";}};
 
     dromos.Bootstrap.setModule(loModuleProxy);
-    QUnit.equal(loModuleProxy, dromos.Bootstrap.getModule('Module'));
+    QUnit.equal(loModuleProxy, dromos.Bootstrap.getModule('module'));
 });
 
 test("BOOTSTRAP : getModule", function()
 {
-    var loModuleProxy = {getName : function(){return "Module";}};
+    var loModuleProxy = {getName : function(){return "module";}};
 
     dromos.Bootstrap.setModule(loModuleProxy);
-    QUnit.equal(loModuleProxy, dromos.Bootstrap.getModule('Module'));
+    QUnit.equal(loModuleProxy, dromos.Bootstrap.getModule('module'));
     QUnit.equal(null, dromos.Bootstrap.getModule('Module does not exist'));
 });
 
@@ -129,7 +128,7 @@ test("BOOTSTRAP : createModule", function()
 
 test("BOOTSTRAP : addModule", function()
 {
-    var loModuleProxy = {getName : function(){return "addModuleProxyModule";}};
+    var loModuleProxy = {getName : function(){return dromos.Bootstrap.normaliseName("addModuleProxyModule");}};
 
     dromos.Bootstrap.addModule(loModuleProxy);
     QUnit.equal(loModuleProxy, dromos.Bootstrap.getModule('addModuleProxyModule'));
@@ -261,10 +260,6 @@ test("REQUIRE BASE TEST", function()
         QUnit.start();
     });
 });
-
-
-// Turn on debug for tests
-require.config({"debug" : true});
 
 
 test("REQUIRE EXTERNAL LOAD TEST", function()
