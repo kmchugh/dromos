@@ -1,5 +1,4 @@
 define(function () {
-	console.error("HERE IN MODULE 3");
 	QUnit.start();
 	var loModule = dromos.Bootstrap.getModule("testModule/ordermodule1");
 	QUnit.ok(loModule !== null && loModule.isLoaded());
