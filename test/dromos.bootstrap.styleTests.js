@@ -1,8 +1,6 @@
-module("DROMOS MODULE");
+module("DROMOS BOOTSTRAP STYLE MODULE");
 
 test("Default Options", function(){
-
-
 
 
 

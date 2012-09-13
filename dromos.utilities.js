@@ -64,6 +64,30 @@ define(["jquery"],
 
     // Dromos utilities object
 	dromos.utilities = {
+
+        /**
+             * Gets the attribute specified on the element specified
+             * @param  Element toElement the element to get the attribute value from
+             * @param  String tcAttribute the name of the attribte to get the value of
+             * @return the value of the attribute  or null if the attribute did not exist on the element
+             */
+            getAttribute : function(toElement, tcAttribute)
+            {
+                if (toElement[tcAttribute] !== undefined)
+                {
+                    return toElement[tcAttribute];
+                }
+                else if (toElement.getAttribute)
+                {
+                    return toElement.getAttribute(tcAttribute);
+                }
+                else if (toElement.attributes && toElement.attributes[tcAttribute])
+                {
+                    return toElement.attributes[tcAttribute];
+                }
+                return null;
+            },
+            
 		// Checks if the object is of the type specified.
         isType : function(toObject, tcType)
             {return Object.prototype.toString.call(toObject) === ("[object " + tcType + "]");},
@@ -216,6 +240,8 @@ define(["jquery"],
                 };
 
         })(),
+
+        
         /**
         * Uses bit.ly to shorten the URL provided
         **/
