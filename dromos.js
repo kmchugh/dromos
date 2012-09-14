@@ -78,7 +78,8 @@ define(["jquery", "dromos.utilities"], function($jQ, utilities)
 						var lcConfig = loElement.attr(__DROMOS_CONFIG__);
 						loElement.removeAttr(__DROMOS_PLUGIN__).removeAttr(__DROMOS_INIT__).removeAttr(__DROMOS_CONFIG__);
 						require(lcModule, function(toModule)
-							{	
+							{
+								console.error("DROMOS - " + toElement);
 								dromos.utilities.initialiseModule(toModule, toElement, tnIndex, lcInit, dromos.base[lcConfig]);
 							});
 					}
