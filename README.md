@@ -270,7 +270,7 @@ dromos-init attribute:
 In the example above, the function myInitFunction would be called instead of init when initialising
 the object, there is no change to the parameters
 
-###Plugin Configuration Function###
+### Plugin Configuration Function###
 
 The final configuration option is the ability to supply a configuration object to the plugin, this can
 be achieved by adding a dromos-config attribute to the element:
