@@ -239,6 +239,8 @@ if (!this["_dromos_initialised"])
                 // Gets/sets the full path for the module specified
                 getPath : function(tcModuleName, tcRoot)
                 {
+                    // TODO: Implement modules relative to each other
+
                     var lcReturn = null;
                     if (/^http/i.test(tcModuleName))
                     {
@@ -247,7 +249,8 @@ if (!this["_dromos_initialised"])
                     }
                     else if (/^\//.test(tcModuleName))
                     {
-                        lcReturn = (tcRoot || this.getBaseURI()) + tcModuleName;
+                        // Starting with / means the path is relative to the current page/module
+                        lcReturn = (tcRoot || '') + tcModuleName;
                         console.debug("Determined path[" + lcReturn + "] for : " + tcModuleName);
                         return lcReturn;
                     }
@@ -560,13 +563,14 @@ if (!this["_dromos_initialised"])
             getPlugin : function(){return this.m_oPlugin || (this.m_oPlugin = g_oDromos.Bootstrap.getDefaultPlugin());},
 
             /**
-             * Gets the path of the specified resource, taking in to account dependent paths for relative paths
+             * Gets the path of the specified resource, taking in to account dependent paths for relative paths.
+             * If tcResource starts with a / then this will be considered a path relative to the current page
              * @param  String the resource to get the path for
              * @return String the path to the resource
              */
             getPath : function(tcResource)
             {
-                // TODO: Implement relative to current module
+                // TODO: Implement modules relative to each other
                 return g_oDromos.Bootstrap.getPath(tcResource);
             },
 
