@@ -1,3 +1,9 @@
 [submodule "newsfeed"]
 	path = newsfeed
 	url = git@github.com:kmchugh/dromos-newsfeed.git
+[submodule "dromos-ajaxlink"]
+	path = dromos-ajaxlink
+	url = git@github.com:kmchugh/dromos-ajaxlink.git
+[submodule "ajaxlink"]
+	path = ajaxlink
+	url = git@github.com:kmchugh/dromos-ajaxlink.git
