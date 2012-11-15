@@ -1,8 +1,9 @@
 module("DROMOS UTILITIES MODULE");
 
-test("Default Options", function(){
+test("DROMOS UTILITIES LOADED TEST", function()
+{
+    QUnit.notEqual(dromos.utilities, null);
 
-
-// TODO: Need to ensure bootstrap utilities are in sync with utility functions
-
+    // Make sure a function exists that was not created by bootstrap
+    QUnit.notEqual("".allTrim, null);
 });

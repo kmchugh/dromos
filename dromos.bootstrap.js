@@ -922,13 +922,13 @@ if (!this["_dromos_initialised"])
         /*****************************************************************************
          * END DEFINE
         *****************************************************************************/
-
+require.config({"debug":true});
 
         /**
          * There are issues with underscore and backbone in an AMD environment, the following function
          * ensures that they are loaded (and accessible)
          * */
-        require(["jquery", "underscore", "backbone"], function(jQuery)
+        require(["order!jquery", "order!underscore", "order!backbone"], function(jQuery)
         {
             // Clean up the namespaces
             g_oDromos.$jQ = jQuery.noConflict();
@@ -941,7 +941,7 @@ if (!this["_dromos_initialised"])
 
             // This is here instead of in the require as the setup above needs to take place to
             // allow jquery, underscore, and backbone to take part in amd loading
-            require(["jqueryui", "order!dromos"], function(){
+            require(["order!jqueryui", "order!dromos"], function(){
                 define("jqueryui", g_oDromos.$jQ);
             });
         });
