@@ -922,7 +922,6 @@ if (!this["_dromos_initialised"])
         /*****************************************************************************
          * END DEFINE
         *****************************************************************************/
-require.config({"debug":true});
 
         /**
          * There are issues with underscore and backbone in an AMD environment, the following function
