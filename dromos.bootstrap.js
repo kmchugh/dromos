@@ -252,7 +252,7 @@ if (!this["_dromos_initialised"])
                         // Starting with / means the path is relative to the current page/module
                         lcReturn = (tcRoot || '') + tcModuleName;
                         console.debug("Determined path[" + lcReturn + "] for : " + tcModuleName);
-                        return lcReturn;
+                        return dromos.utilities.cleanURL(lcReturn);
                     }
                     else
                     {
