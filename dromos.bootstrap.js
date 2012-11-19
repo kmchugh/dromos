@@ -28,7 +28,7 @@ if (!this["_dromos_initialised"])
 {
     this["_dromos_initialised"] = true;
     (function(toBase) {
-        var __VERSION__ = 0.31; // Version number, used in .js urls, so cache busting can be done by changing
+        var __VERSION__ = 0.32; // Version number, used in .js urls, so cache busting can be done by changing
         var __DEBUG__ = false; // debug mode.  Can be configured by calling require.config({debug : true});
 
         var g_oBase = toBase;  // usually reference to the window or server object
