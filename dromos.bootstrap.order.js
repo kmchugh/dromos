@@ -64,11 +64,11 @@ define(function(){
                 {
                     m_aLoading.splice(lnIndex,1);
                 }
-
                 // Load the next one
                 if (m_aLoading.length > 0)
                 {
                     console.debug("Order plugin is loading module " + m_aLoading[0]);
+                    var loSelf = this;
                     this.startLoad(dromos.Bootstrap.getModule(m_aLoading[0]));
                 }
             }

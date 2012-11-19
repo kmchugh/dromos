@@ -28,7 +28,7 @@ if (!this["_dromos_initialised"])
 {
     this["_dromos_initialised"] = true;
     (function(toBase) {
-        var __VERSION__ = 0.32; // Version number, used in .js urls, so cache busting can be done by changing
+        var __VERSION__ = 0.33; // Version number, used in .js urls, so cache busting can be done by changing
         var __DEBUG__ = false; // debug mode.  Can be configured by calling require.config({debug : true});
 
         var g_oBase = toBase;  // usually reference to the window or server object
@@ -70,35 +70,46 @@ if (!this["_dromos_initialised"])
 
             // Adds an event listener to the element specified
             addEventListener : (function(){
-                return g_oBase.addEventListener ?
+                return g_oBase.attachEvent ?
                     function(toElement, toCallback, tcEventType)
                     {
+                        var lcHashCode = toCallback.toString().hashCode().toString();
                         toElement['_'+tcEventType+'Handler'] = toElement['_'+tcEventType+'Handler'] || {};
-                        toElement['_'+tcEventType+'Handler'][toCallback.toString()] = toElement['_'+tcEventType+'Handler'][toCallback] || function(e){toCallback(e);};
-                        toElement.addEventListener(tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()], false);
+                        toElement['_'+tcEventType+'Handler'][lcHashCode] = toElement['_'+tcEventType+'Handler'][lcHashCode] || function(e){toCallback(window.event);};
+                        toElement.attachEvent("on" + tcEventType, toElement['_'+tcEventType+'Handler'][lcHashCode]);
                     } :
                     function(toElement, toCallback, tcEventType)
                     {
+                        var lcHashCode = toCallback.toString().hashCode().toString();
                         toElement['_'+tcEventType+'Handler'] = toElement['_'+tcEventType+'Handler'] || {};
-                        toElement['_'+tcEventType+'Handler'][toCallback.toString()] = toElement['_'+tcEventType+'Handler'][toCallback] || function(e){toCallback(window.event);};
-                        toElement.attachEvent("on" + tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()]);
+                        toElement['_'+tcEventType+'Handler'][lcHashCode] = toElement['_'+tcEventType+'Handler'][lcHashCode] || function(e){toCallback(e);};
+                        toElement.addEventListener(tcEventType, toElement['_'+tcEventType+'Handler'][lcHashCode], false);
                     };
             })(),
             // Removes an event listener from the element specified
             // TODO: ensure this is removing the event
             removeEventListener : (function(){
-                return g_oBase.removeEventListener ?
+                return g_oBase.detachEvent ?
                     function(toElement, toCallback, tcEventType)
                     {
-                        toElement.removeEventListener(tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()], false);
-                        delete toElement['_'+tcEventType+'Handler'][toCallback.toString()];
+                        var lcHashCode = toCallback.toString().hashCode().toString();
+                        var loHandler = toElement['_'+tcEventType+'Handler'][lcHashCode];
+                        if (loHandler)
+                        {
+                            toElement.detachEvent("on" + tcEventType, loHandler);
+                        }
+                        delete toElement['_'+tcEventType+'Handler'][lcHashCode];
                     } :
                     function(toElement, toCallback, tcEventType)
                     {
-                        toElement.detachEvent("on" + tcEventType, toElement['_'+tcEventType+'Handler'][toCallback.toString()]);
-                        delete toElement['_'+tcEventType+'Handler'][toCallback.toString()];
+                        var lcHashCode =  toCallback.toString().hashCode().toString();
+                        var loHandler = toElement['_'+tcEventType+'Handler'][lcHashCode];
+                        if (loHandler)
+                        {
+                            toElement.removeEventListener(tcEventType, loHandler, false);
+                        }
+                        delete toElement['_'+tcEventType+'Handler'][lcHashCode];
                     };
-
             })(),
 
             /**
@@ -127,6 +138,51 @@ if (!this["_dromos_initialised"])
             // Takes a URL and "Cleans" it by adding to the url, the default is to add the version from cachebuster
             cleanURL : function(tcURL){return tcURL + (tcURL.indexOf("?") < 0 ? "?" : "&") + "version=" + g_oDromos.Bootstrap["version"];}
         };
+
+
+        // Hashcode for Strings
+        String.prototype.hashCode = function()
+        {
+            var lnHash = 0;
+            if (this.length == 0) return lcHash;
+            for (var i=0, lnLength = this.length; i<lnLength; i++)
+            {
+                var lcChar = this.charCodeAt(i);
+                lnHash = ((lnHash << 5)-lnHash)+lcChar;
+                lnHash = lnHash & lnHash;
+            }
+            return '_' + lnHash;
+        };
+
+        if (!Array.prototype.indexOf) 
+        {
+            Array.prototype.indexOf = function (toSearchElement /*, tnFromIndex */ ) 
+            {
+                if (this == null) 
+                {
+                    throw new TypeError();
+                }
+                var lnLength = this.length;
+                if (lnLength === 0)
+                {
+                    return -1;
+                }
+
+                var lnIndex = arguments.length > 1 ? Math.max(Number(arguments[1]),  0) : 0;
+                if (lnIndex >=lnLength)
+                {
+                    return -1;
+                }
+                for(var lnReturn=lnIndex; lnReturn < lnLength; lnReturn++)
+                {
+                    if (this[lnReturn] === toSearchElement)
+                    {
+                        return lnReturn;
+                    }
+                }
+                return -1;
+            };
+        }
 
         // Define the bootstrap
         g_oDromos.Bootstrap = (function(toBase)
@@ -372,7 +428,7 @@ if (!this["_dromos_initialised"])
                     return laParameters;
                 };
 
-                /**
+               /**
                  * Executes all of the callbacks that are set for this module.  After this call
                  * the callbacks will be cleared
                  */
@@ -380,13 +436,13 @@ if (!this["_dromos_initialised"])
                 {
                     if (m_aCallbacks.length > 0)
                     {
-                        console.debug("Executing callbacks for " + this.getName());
                         var laParams = this.getCallbackParameters();
                         for (var i=0, lnLength=m_aCallbacks.length; i<lnLength; i++)
                         {
                             var loCallback = m_aCallbacks[i];
                             if (loCallback)
                             {
+                                console.debug("Executing callback [" + (i +1) + "/" + lnLength + "] for " + this.getName());
                                 m_aCallbacks[i] = null;
                                 loCallback.apply(g_oBase, laParams);
                             }
@@ -406,6 +462,7 @@ if (!this["_dromos_initialised"])
                         if (loModule)
                         {
                             m_aParents[i] = null;
+                            console.debug("Notifying " + loModule.getName() + " that " + this.getName() + " has completed");
                             loModule.notifyCompletion(this);
                         }
                     }
@@ -743,18 +800,20 @@ if (!this["_dromos_initialised"])
                     }
                 }
             },
-            onResourceLoaded : function(toEvent)
+             onResourceLoaded : function(toEvent)
             {
+                var loSelf = this;
                 var loTag = toEvent.currentTarget || toEvent.srcElement;
-                if (loTag && loTag._module && (toEvent.type === "load" || (loTag && /^(loaded|complete)$/.test(loTag.readyState))))
+                if (loTag && loTag._module && (toEvent.type === "load" || (loTag && /^(loaded)$/.test(loTag.readyState))))
                 {
                     var loModule = loTag._module;
-                    g_oDromos.Bootstrap._outstandingModule = loModule;
-                    g_oDromos.utilities.removeEventListener(loTag, function(toEvent){loSelf.onResourceLoaded.call(this, toEvent);}, loTag.detachEvent ? "readystatechange" : "load");
-                    g_oDromos.utilities.removeEventListener(loTag, function(toEvent){loSelf.onResourceError.call(this, toEvent);}, "error");
-                    loModule.onCompletedLoading();
+                    console.debug("Resource loaded " + loModule.getName() + ' - ' + toEvent.type + ' - - ' + loTag.readyState);
+                    g_oDromos.utilities.removeEventListener(loTag, function(toEvent){loSelf.onResourceLoaded.call(loSelf, toEvent);}, loTag.detachEvent ? "readystatechange" : "load");
+                    g_oDromos.utilities.removeEventListener(loTag, function(toEvent){loSelf.onResourceError.call(loSelf, toEvent);}, "error");
+                    loModule.onCompletedLoading(loModule);
                     this.onCompleted(loModule);
                 }
+                console.debug("ReadyStateChange loaded " + loTag._module.getName() + ' - ' + toEvent.type + ' - - ' + loTag.readyState);
             },
             onResourceError : function(toEvent)
             {
@@ -901,11 +960,29 @@ if (!this["_dromos_initialised"])
                 g_oDromos.utilities.isType(tcModuleName, "Array") ? tcModuleName : [];
             tcModuleName = g_oDromos.utilities.isType(tcModuleName, "String") ? tcModuleName : null;
 
+            // See if we can determine a script name
+            var laScripts = document.getElementsByTagName('script');
+            if(laScripts.length > 0 && laScripts[0].readyState)
+            {
+                for(var i=laScripts.length -1, lnLength = 0; i>=lnLength; i--)
+                {
+                    if (laScripts[i].readyState==='interactive' && laScripts[i]._module)
+                    {
+                        loScript = laScripts[i];
+                        tcModuleName = laScripts[i]._module.getName();
+                        console.debug("DISCOVERED " + tcModuleName + " as " + (typeof(toCallback)));
+                        g_oDromos.Bootstrap._outstandingDefinition = {"dependencies" : taDependencies,
+                                                                                                "callback" : toCallback};
+                        return;
+                    }
+                }
+            }
+
             if (tcModuleName)
             {
                 // In this case we are specifically defining a module.  If a module of this name already exists it WILL be overwritten
                 console.debug("DEFINING " + tcModuleName + " as " + (typeof(toCallback)) + " with [" + taDependencies + ']');
-                g_oDromos.Bootstrap.createModule(tcModuleName, g_oDromos.utilities.isType(toCallback, "Function") ? toCallback.apply(this) : toCallback);
+                var loModule = g_oDromos.Bootstrap.createModule(tcModuleName, g_oDromos.utilities.isType(toCallback, "Function") ? toCallback.apply(this) : toCallback);
             }
             else
             {
@@ -927,12 +1004,13 @@ if (!this["_dromos_initialised"])
          * There are issues with underscore and backbone in an AMD environment, the following function
          * ensures that they are loaded (and accessible)
          * */
-        require(["order!jquery", "order!underscore", "order!backbone"], function(jQuery)
+        require(["order!jquery", "order!underscore", "order!backbone", "order!jqueryui"], function(jQuery)
         {
             // Clean up the namespaces
             g_oDromos.$jQ = jQuery.noConflict();
             g_oDromos._ = _.noConflict();
             g_oDromos.$bb = Backbone.noConflict();
+            define("jqueryui", g_oDromos.$jQ);
 
             // Define the modules in dromos
             define("underscore", [], function(){return g_oDromos._;});
@@ -940,8 +1018,8 @@ if (!this["_dromos_initialised"])
 
             // This is here instead of in the require as the setup above needs to take place to
             // allow jquery, underscore, and backbone to take part in amd loading
-            require(["order!jqueryui", "order!dromos"], function(){
-                define("jqueryui", g_oDromos.$jQ);
+            require(["dromos"], function(){
+                // Nothing to do here.
             });
         });
     })(this);

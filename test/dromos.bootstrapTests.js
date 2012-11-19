@@ -152,7 +152,7 @@ test("BOOTSTRAP : getPath", function()
 
     QUnit.equal(dromos.Bootstrap.baseURI + 'my/custom/path/object/test', dromos.Bootstrap.getPath('myModule/object/test'));
 
-    QUnit.equal('/myModule/object/test', dromos.Bootstrap.getPath('/myModule/object/test'));
+    QUnit.equal('/myModule/object/test?version='+dromos.Bootstrap["version"], dromos.Bootstrap.getPath('/myModule/object/test'));
 
 
 

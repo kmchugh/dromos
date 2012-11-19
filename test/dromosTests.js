@@ -1,7 +1,5 @@
 module("DROMOS MODULE");
 
-console.error("HERE");
-
 test("DROMOS LOADED TEST", function()
 {
     QUnit.notEqual(dromos, null);
