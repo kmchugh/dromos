@@ -82,11 +82,21 @@ define(["jquery", "dromos.utilities"], function($jQ, utilities)
 	};
 
 	// Update all elements to notify of dom changes
-	$jQ('*').each(dromos.addDOMNotifier);
+	// 
+	// Firefox now has a problem with setting properties on 
+	try
+	{
+		$jQ('<div>').insertBefore = function(){};
+		$jQ('*').each(dromos.addDOMNotifier);
+	}
+	catch (ex)
+	{
+		// DO NOTHING
+	}
 	$jQ('*').on('domchildadded', function()
-			{
-				dromos.prepareModule(this);
-			});
+	{
+		dromos.prepareModule(this);
+	});
 	$jQ(function(){dromos.prepareModule(document);});
 
 	// return the dromos object for future require calls
