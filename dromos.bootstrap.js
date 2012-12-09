@@ -68,50 +68,6 @@ if (!this["_dromos_initialised"])
                 return null;
             },
 
-            // Adds an event listener to the element specified
-            addEventListener : (function(){
-                return g_oBase.attachEvent ?
-                    function(toElement, toCallback, tcEventType)
-                    {
-                        var lcHashCode = toCallback.toString().hashCode().toString();
-                        toElement['_'+tcEventType+'Handler'] = toElement['_'+tcEventType+'Handler'] || {};
-                        toElement['_'+tcEventType+'Handler'][lcHashCode] = toElement['_'+tcEventType+'Handler'][lcHashCode] || function(e){toCallback(window.event);};
-                        toElement.attachEvent("on" + tcEventType, toElement['_'+tcEventType+'Handler'][lcHashCode]);
-                    } :
-                    function(toElement, toCallback, tcEventType)
-                    {
-                        var lcHashCode = toCallback.toString().hashCode().toString();
-                        toElement['_'+tcEventType+'Handler'] = toElement['_'+tcEventType+'Handler'] || {};
-                        toElement['_'+tcEventType+'Handler'][lcHashCode] = toElement['_'+tcEventType+'Handler'][lcHashCode] || function(e){toCallback(e);};
-                        toElement.addEventListener(tcEventType, toElement['_'+tcEventType+'Handler'][lcHashCode], false);
-                    };
-            })(),
-            // Removes an event listener from the element specified
-            // TODO: ensure this is removing the event
-            removeEventListener : (function(){
-                return g_oBase.detachEvent ?
-                    function(toElement, toCallback, tcEventType)
-                    {
-                        var lcHashCode = toCallback.toString().hashCode().toString();
-                        var loHandler = toElement['_'+tcEventType+'Handler'][lcHashCode];
-                        if (loHandler)
-                        {
-                            toElement.detachEvent("on" + tcEventType, loHandler);
-                        }
-                        delete toElement['_'+tcEventType+'Handler'][lcHashCode];
-                    } :
-                    function(toElement, toCallback, tcEventType)
-                    {
-                        var lcHashCode =  toCallback.toString().hashCode().toString();
-                        var loHandler = toElement['_'+tcEventType+'Handler'][lcHashCode];
-                        if (loHandler)
-                        {
-                            toElement.removeEventListener(tcEventType, loHandler, false);
-                        }
-                        delete toElement['_'+tcEventType+'Handler'][lcHashCode];
-                    };
-            })(),
-
             /**
              * Gets the attribute specified on the element specified
              * @param  Element toElement the element to get the attribute value from
@@ -133,68 +89,18 @@ if (!this["_dromos_initialised"])
                     return toElement.attributes[tcAttribute];
                 }
                 return null;
-            },
-
-            // Takes a URL and "Cleans" it by adding to the url, the default is to add the version from cachebuster
-            cleanURL : function(tcURL){return tcURL + (tcURL.indexOf("?") < 0 ? "?" : "&") + "version=" + g_oDromos.Bootstrap["version"];}
-        };
-
-
-        // Hashcode for Strings
-        String.prototype.hashCode = function()
-        {
-            var lnHash = 0;
-            if (this.length == 0) return lcHash;
-            for (var i=0, lnLength = this.length; i<lnLength; i++)
-            {
-                var lcChar = this.charCodeAt(i);
-                lnHash = ((lnHash << 5)-lnHash)+lcChar;
-                lnHash = lnHash & lnHash;
             }
-            return '_' + lnHash;
         };
-
-        if (!Array.prototype.indexOf) 
-        {
-            Array.prototype.indexOf = function (toSearchElement /*, tnFromIndex */ ) 
-            {
-                if (this == null) 
-                {
-                    throw new TypeError();
-                }
-                var lnLength = this.length;
-                if (lnLength === 0)
-                {
-                    return -1;
-                }
-
-                var lnIndex = arguments.length > 1 ? Math.max(Number(arguments[1]),  0) : 0;
-                if (lnIndex >=lnLength)
-                {
-                    return -1;
-                }
-                for(var lnReturn=lnIndex; lnReturn < lnLength; lnReturn++)
-                {
-                    if (this[lnReturn] === toSearchElement)
-                    {
-                        return lnReturn;
-                    }
-                }
-                return -1;
-            };
-        }
 
         // Define the bootstrap
         g_oDromos.Bootstrap = (function(toBase)
         {
-            var m_oModules = {}; // The full list of modules
-            var m_oPaths = {}; // The custom path to individual modules
-
             var m_oDromosScriptTag = g_oDromos.utilities.getScript("dromos.bootstrap.js");
             var m_cDromosRootURL = dromos.utilities.getAttribute(m_oDromosScriptTag, 'dromos-root') || dromos.utilities.getAttribute(m_oDromosScriptTag, 'src').substring(0, m_oDromosScriptTag.src.indexOf("dromos.bootstrap.js"));
+            var m_cDromosBaseURL = dromos.utilities.getAttribute(m_oDromosScriptTag, 'dromos-base') || (m_cDromosRootURL+'../../');
             // The bootstrap object
             return {
-                baseURI : m_cDromosRootURL,
+                baseURI : m_cDromosBaseURL,
 
                 /**
                  * Gets the default root, this is the location to use as the base url when loading relative script locations
@@ -214,647 +120,9 @@ if (!this["_dromos_initialised"])
                  * @return a string representation of the module name
                  */
                 normaliseName : function(taScripts){return (dromos.utilities.isType(taScripts, 'Array') ? taScripts : [taScripts]).join('|').toLowerCase().replace(/(^|\|)[^\!|\|]+\!/g, '$1');},
-
-                /**
-                 * Adds the specified module to the Bootstrap.  If the module already exists, this will overwrite the existing module
-                 * @param Module toModule the module to add
-                 */
-                setModule : function(toModule){m_oModules[toModule.getName()] = toModule;},
-
-                /**
-                 * Checks if the specified module is already in the list of modules
-                 * @param  String or Module toModule the module being added
-                 * @return true if the module already exists in the list of modules
-                 */
-                hasModule : function(toModule){return m_oModules[dromos.utilities.isType(toModule, 'String') ? this.normaliseName(toModule) : toModule.getName()] !== undefined;},
-
-                /**
-                 * Adds a module to dromos.  If the module has previously been added this
-                 * will cause an exeption
-                 * @param Module toModule the module to add
-                 */
-                addModule : function(toModule)
-                {
-                    if (!this.hasModule(toModule))
-                    {
-                        this.setModule(toModule);
-                    }
-                    else
-                    {
-                        throw "Module " + toModule.getName() + " already exists";
-                    }
-                },
-
-                /**
-                 * Gets the module specified
-                 * @param  String tcModuleName the name of the module to get
-                 * @return The module or null if the module does not yet exist
-                 */
-                getModule : function(tcModuleName){return m_oModules[this.normaliseName(tcModuleName)] || null;},
-
-                /**
-                 * Gets the modules specified, if the module does not already exist it willl
-                 * be created and the load started for the module
-                 * @param  Array[String] the list of the scripts that are in the module
-                 * @return Module the module retrieved or created by this call
-                 */
-                loadModule : function(taModules)
-                {
-                    var loModule = m_oModules[this.normaliseName(taModules)];
-                    if (!loModule)
-                    {
-                        loModule = new g_oDromos.Bootstrap.Module(taModules);
-                        loModule.load();
-                    }
-                    return loModule;
-                },
-
-                /**
-                 * Creates a module but does not attempt to load the module from a script.
-                 * Generally this is used for defining a module and its content.
-                 * If a module of the name tcModuleName already exits, this call WILL overwrite that module
-                 * @param  String the name of the module
-                 * @return Module the module that has been created and set
-                 */
-                createModule : function(tcModuleName, toDefinition)
-                {
-                    tcModuleName = this.normaliseName(tcModuleName);
-                    if (g_oDromos.Bootstrap.hasModule(tcModuleName))
-                    {
-                        delete m_oModules[tcModuleName];
-                    }
-                    var loModule = new g_oDromos.Bootstrap.Module([tcModuleName]);
-                    if (toDefinition)
-                    {
-                        loModule.setDefinition(toDefinition);
-                    }
-                    g_oDromos.Bootstrap.setModule(loModule);
-                    return loModule;
-                },
-
-                // Gets/sets the full path for the module specified
-                getPath : function(tcModuleName, tcRoot)
-                {
-                    // TODO: Implement modules relative to each other
-
-                    var lcReturn = null;
-                    if (/^http/i.test(tcModuleName))
-                    {
-                        console.debug("Determined path[" + tcModuleName + "] for : " + tcModuleName);
-                        return tcModuleName;
-                    }
-                    else if (/^\//.test(tcModuleName))
-                    {
-                        // Starting with / means the path is relative to the current page/module
-                        lcReturn = (tcRoot || '') + tcModuleName;
-                        console.debug("Determined path[" + lcReturn + "] for : " + tcModuleName);
-                        return dromos.utilities.cleanURL(lcReturn);
-                    }
-                    else
-                    {
-                        var lcMap = tcModuleName;
-                        while (lcMap !== null)
-                        {
-                            // Check for a path
-                            if (m_oPaths[lcMap.toLowerCase()])
-                            {
-                                lcReturn = this.getPath(m_oPaths[lcMap.toLowerCase()] + tcModuleName.replace(lcMap, ""));
-                                console.debug("Determined path[" + lcReturn + "] for : " + tcModuleName);
-                                return lcReturn;
-                            }
-
-                            // No path, check subpath
-                            var loMatch = lcMap.match(/(^.+\/)[^\/]+$/);
-                            if (loMatch && loMatch.length > 1)
-                            {
-                                lcMap = loMatch[1];
-                                if (/\/$/.test(lcMap))
-                                {
-                                    lcMap = lcMap.substring(0, lcMap.length-1);
-                                }
-                            }
-                            else
-                            {
-                                lcMap = null;
-                            }
-                        }
-                        lcReturn = m_oPaths[tcModuleName] || (tcRoot || this.getBaseURI()) + tcModuleName;
-                        console.debug("Determined path[" + lcReturn + "] for : " + tcModuleName);
-                        return lcReturn;
-                    }
-                },
-                setPath : function(tcModuleName, tcModulePath){m_oPaths[tcModuleName.toLowerCase()] = tcModulePath;},
-
-                /**
-                 * Gets the default plugin, the default plugin is the plugin used when attempting to load multiple modules, it is also the plugin
-                 * that all other plugins will extend from when they are first created
-                 * @return Plugin the default plugin
-                 */
-                getDefaultPlugin : function(){return g_oDromos.Bootstrap.defaultPlugin || (g_oDromos.Bootstrap.defaultPlugin = new g_oDromos.Bootstrap.Plugin());}
           };
      })(toBase);
 
-
-        /*****************************************************************************
-         * Module
-         * A Module is a group of scripts that are grouped together for a
-         * specific function.  A module can consist of a single script or a script with
-         * dependencies.
-         * Once all of the scripts in a module are loaded any callbacks
-         * associated with the module are called
-        *****************************************************************************/
-        g_oDromos.Bootstrap.Module = (function(taResources, toCallback)
-        {
-            var loModule = function(taResources, toCallback)
-            {
-                if  (!dromos.utilities.isType(taResources, 'Array') || taResources.length === 0)
-                {
-                    throw "Resources not provided for Bootstrap Module";
-                }
-
-                var m_cName = g_oDromos.Bootstrap.normaliseName(taResources);
-                var m_aResources = taResources;
-                var m_aParents = [];
-                var m_aCallbacks = [];
-                var m_oDefinition = null;
-                var m_lLoading = false;
-                var m_lLoaded = false;
-                var m_aModules = [];
-                var m_aPlugins = taResources.length == 1 ? taResources[0].split('!') : [];
-                m_aPlugins.pop();
-
-                console.debug("creating Module for " + m_cName + " using plugins [" + m_aPlugins + "]");
-
-                /**
-                 * Gets the normalised name of this module
-                 * @return the name to uniquely identify this module
-                 */
-                this.getName = function(){return m_cName;};
-
-                /**
-                 * Checks if this module has any outstanding callbacks
-                 * @return true if there are callbacks which have not yet been called
-                 */
-                this.hasCallbacks = function(){return m_aCallbacks.length > 0;},
-
-                /**
-                 * Private helper method to add callback to this module.
-                 * @param Function toCallback, the callback to add
-                 */
-                this._addCallback = function(toCallback){m_aCallbacks[m_aCallbacks.length] = toCallback;};
-
-                /**
-                 * Gets all of the callbacks associated with this module that have not yet been executed
-                 * @return Array[function] the callbacks which have not been executed
-                 */
-                this.getCallbacks = function(){return m_aCallbacks;};
-
-                /**
-                 * Creates an array of callback parameters, these parameters will be in the same order as the
-                 * scripts that were required by this module
-                 */
-                this.getCallbackParameters = function()
-                {
-                    var laParameters = [];
-                     for (var i=0, lnLength=m_aResources.length; i<lnLength; i++)
-                    {
-                        var loModule = g_oDromos.Bootstrap.getModule(dromos.Bootstrap.normaliseName(m_aResources[i]));
-                        laParameters[i] = (loModule && loModule.isLoaded()) ? loModule.getDefinition() : null;
-                    }
-                    if (this.getDefinition())
-                    {
-                        laParameters.unshift(this.getDefinition());
-                    }
-                    return laParameters;
-                };
-
-               /**
-                 * Executes all of the callbacks that are set for this module.  After this call
-                 * the callbacks will be cleared
-                 */
-                this.executeCallbacks = function()
-                {
-                    if (m_aCallbacks.length > 0)
-                    {
-                        var laParams = this.getCallbackParameters();
-                        for (var i=0, lnLength=m_aCallbacks.length; i<lnLength; i++)
-                        {
-                            var loCallback = m_aCallbacks[i];
-                            if (loCallback)
-                            {
-                                console.debug("Executing callback [" + (i +1) + "/" + lnLength + "] for " + this.getName());
-                                m_aCallbacks[i] = null;
-                                loCallback.apply(g_oBase, laParams);
-                            }
-                        }
-                        m_aCallbacks = [];
-                    }
-                };
-
-                /**
-                 * Notifies the parent modules that this module has completed
-                 */
-                this.notifyParents = function()
-                {
-                    for (var i=0, lnLength=m_aParents.length; i<lnLength; i++)
-                    {
-                        var loModule = m_aParents[i];
-                        if (loModule)
-                        {
-                            m_aParents[i] = null;
-                            console.debug("Notifying " + loModule.getName() + " that " + this.getName() + " has completed");
-                            loModule.notifyCompletion(this);
-                        }
-                    }
-                    m_aParents = [];
-                };
-
-                /**
-                 * Gets the plugins that this module needs to be loaded with
-                 * @return Array, a list of plugins, or an empty list if there are no plugins
-                 */
-                this.getPlugins = function(){return m_aPlugins;};
-
-                /**
-                 * Gets the list of scripts which have not yet been loaded
-                 * @return this list of scripts which are still required by this module
-                 */
-                this.getResources = function(){return m_aResources;};
-
-                /**
-                 * Checks if the module is loading, a module that is loading is one that has been asked
-                 * to load and has not yet loaded its scripts or not yet called its callback functions
-                 * @return Boolean true if this module is not loading
-                 */
-                this.isLoading = function(){return m_lLoading;};
-
-                /**
-                 * Checks if this module is loaded.  A loaded module is a module that has loaded all dependencies
-                 * and has already called any callback functions required for the script
-                 * @return Boolean true if the module is ready to be used
-                 */
-                this.isLoaded = function(){return m_lLoaded;};
-
-                /**
-                 * Marks this module as loaded
-                 */
-                this.markLoaded = function(){m_lLoading = !(m_lLoaded = true);};
-
-                /**
-                 * Helper method for marking the module as loaded.  This is really only used by define in order to mark
-                 * modules loaded that do not require any kind of script load.
-                 * @param Boolean tlLoading the state to set the module to
-                 */
-                this._setLoading = function(tlLoading){m_lLoading =tlLoading;};
-
-                /**
-                 * Adds a parent to this module.  A parent module is a module that is waiting to be informed when this module has completed loading.
-                 * If the module is already a parent it will not be added again
-                 * @param Module toModule
-                 */
-                this.addParent = function(toModule)
-                {
-                    console.debug("Adding parent " + toModule.getName() + " to module " + this.getName());
-                    for (var i=0, lnLength = m_aParents.length; i<lnLength; i++)
-                    {
-                        if (m_aParents[i] === toModule){return;}
-                    }
-                    m_aParents[m_aParents.length] =toModule;
-                };
-
-                /**
-                 * Notifies this module that one of its dependencies has completed.
-                 * @param  Module toModule The module that completed loading
-                 */
-                this.notifyCompletion = function(toModule)
-                {
-                    var i=0, lnLength = 0;
-                    for (i=0, lnLength = m_aResources.length; i<lnLength; i++)
-                    {
-                        m_aModules[i] = m_aModules[i] || null;
-                        if (dromos.Bootstrap.normaliseName(m_aResources[i]) === toModule.getName())
-                        {
-                            m_aModules[i] = toModule;
-                            console.debug("Notifying " + this.getName() + " that " + toModule.getName() + " has completed");
-                        }
-                    }
-
-                    // If all of the modules have been loaded then we are also complete
-                    for (i=0, lnLength = m_aModules.length; i<lnLength; i++)
-                    {
-                        if (m_aModules[i] === null)
-                        {
-                            return;
-                        }
-                    }
-                    this.onCompletedLoading();
-                };
-
-                /**
-                 * Gets/Sets the definition of this module
-                 * @param Object the defenition of this module
-                 */
-                this.getDefinition = function(){return m_oDefinition;};
-                this.setDefinition = function(toDefinition)
-                {
-                    m_oDefinition = toDefinition;
-                    // If we have a definition, then we are considered to be loaded
-                    if (m_oDefinition !== undefined && m_oDefinition !== null)
-                    {
-                        m_lLoaded = !(m_lLoading = false);
-                    }
-                };
-
-                if(toCallback)
-                {
-                    this.addCallback(toCallback);
-                }
-                g_oDromos.Bootstrap.addModule(this);
-            };
-            return loModule;
-        })();
-
-
-        g_oDromos.Bootstrap.Module.prototype = {
-            m_aCallbacks : [],
-            m_oPlugin : null,
-            /**
-             * Adds the specified callback to this module, if the module is already loaded then this
-             * will execute the callback
-             * @param the callback function
-             */
-            addCallback : function(toCallback)
-            {
-                if (toCallback && dromos.utilities.isType(toCallback, 'Function'))
-                {
-                    if (this.isLoaded())
-                    {
-                        console.debug("Executing callback for module [" + this.getName() + ']');
-                        toCallback.apply(g_oBase, this.getCallbackParameters());
-                    }
-                    else
-                    {
-                        console.debug("Adding callback to module [" + this.getName() + ']');
-                        this._addCallback(toCallback);
-                    }
-                }
-            },
-            /**
-             * Loads the module if it is not already loaded.  Loading of a module is the act
-             * of loading all dependencies, then loading this module.  An isLoading flag
-             * is used to prevent against circular dependency locks
-             */
-            load : function()
-            {
-                if (!this.isLoading() && !this.isLoaded())
-                {
-                    console.debug("preparing to load " + this.getName());
-                    this._setLoading(true);
-                    this.getPlugin().load(this);
-                }
-            },
-            /**
-             * Gets the plugin for this midule
-             * @return Plugin the plugin to use to load this module
-             */
-            getPlugin : function(){return this.m_oPlugin || (this.m_oPlugin = g_oDromos.Bootstrap.getDefaultPlugin());},
-
-            /**
-             * Gets the path of the specified resource, taking in to account dependent paths for relative paths.
-             * If tcResource starts with a / then this will be considered a path relative to the current page
-             * @param  String the resource to get the path for
-             * @return String the path to the resource
-             */
-            getPath : function(tcResource)
-            {
-                // TODO: Implement modules relative to each other
-                return g_oDromos.Bootstrap.getPath(tcResource);
-            },
-
-            /**
-             * Occurs when the module has been notified by the bootstrap that its resource has completed loading
-             */
-            onCompletedLoading : function()
-            {
-                console.debug("Completed loading " + this.getName());
-                var loOutstanding = g_oDromos.Bootstrap._outstandingDefinition;
-                g_oDromos.Bootstrap._outstandingDefinition = null;
-                if (loOutstanding)
-                {
-                    console.debug("Anonymous module identified as " + this.getName());
-                    if (loOutstanding.dependencies && loOutstanding.dependencies.length > 0)
-                    {
-                        var loSelf = this;
-                        require(loOutstanding.dependencies, function()
-                        {
-                            loSelf.setDefinition(loOutstanding.callback.apply(g_oBase, arguments));
-                            loSelf.executeCallbacks();
-                            loSelf.markLoaded();
-                            loSelf.notifyParents();
-                        });
-                        return;
-                    }
-                    else if (loOutstanding.callback)
-                    {
-                        this.setDefinition(dromos.utilities.isType(loOutstanding.callback, "Function") ? loOutstanding.callback.call(g_oBase) : loOutstanding.callback);
-                    }
-                }
-                this.executeCallbacks();
-                this.markLoaded();
-                this.notifyParents();
-            }
-        };
-
-        /*****************************************************************************
-        * END PACKAGE
-        *****************************************************************************/
-
-        /*****************************************************************************
-         * PLUGIN
-         * A Plugin is used to load modules according to the rules of the plugin
-        *****************************************************************************/
-        g_oDromos.Bootstrap.Plugin = function(tcName)
-        {
-            var m_cName = tcName || "Default Plugin";
-
-             // Gets the name of this plugin
-            this.getName = function(){return m_cName;};
-        };
-
-        g_oDromos.Bootstrap.Plugin.prototype =
-        {
-            /**
-             * Attempts to load the module specified by loading the resources required for that module
-             * @param  Module the module being loaded
-             */
-            load : function(toModule)
-            {
-                if (!toModule.isLoaded())
-                {
-                    this.onLoad(toModule);
-                }
-            },
-            /**
-             * The actual loading mechanism for the plugin, this should be overriden in subclasses to give alternative load actions
-             * @param  Module the module being loaded
-             */
-            onLoad : function(toModule)
-            {
-                console.debug("loading module " + toModule.getName());
-                var laResources = toModule.getResources();
-                if (laResources.length ==  1)
-                {
-                    // Extract Plugin info
-                    var laPlugins = toModule.getPlugins();
-                    if (laPlugins.length === 0)
-                    {
-                        g_oDromos.Bootstrap.getDefaultPlugin().loadResource(toModule, laResources[0]);
-                    }
-                    else
-                    {
-                        // TODO : For now, no chaining of plugins, this we will support later
-                        var lcPlugin = laPlugins[0];
-                        console.debug("using plugin dromos.bootstrap." + lcPlugin + " for " + toModule.getName());
-                        require("dromos.bootstrap." + lcPlugin, function(toPlugin)
-                        {
-                            console.debug("using the plugin " + lcPlugin + " to load the module");
-                            toPlugin.load(toModule);
-                        });
-                    }
-                }
-                else
-                {
-                    var laCompleted = [], i;
-                    for (i=0, lnLength = laResources.length; i<lnLength; i++)
-                    {
-                        console.debug("extracted dependency " + laResources[i] + " for " + toModule.getName());
-                        var loModule = g_oDromos.Bootstrap.loadModule([laResources[i]]);
-                        loModule.addParent(toModule);
-                        if (loModule.isLoaded())
-                        {
-                            laCompleted[laCompleted.length] = loModule;
-                        }
-                    }
-                    for (i=0, lnLength = laCompleted.length; i<lnLength; i++)
-                    {
-                        toModule.notifyCompletion(laCompleted[i]);
-                    }
-                }
-            },
-            /**
-             * Loads the resource specified,
-             * @param  Module toModule the module that is expecting the resource to be loaded
-             * @param  String tcResource the resource to load
-             */
-            loadResource : function(toModule, tcResource)
-            {
-                console.debug("loading resource " + tcResource);
-                // Default action is simply adding the script tag to the head
-                this.addScriptTag(toModule, tcResource);
-            },
-            /**
-             * The default extension to add to the resource for this plugin
-             * @return the extension including the '.'
-             */
-            getResourceExtension : function(){return '.js';},
-            /**
-             * Adds a script tag to load the resource specified, this will notify the module when the resource is loaded
-             * @param Module toModule the module that the resource is being loaded for
-             * @param String tcScriptName the name of the script being loaded
-             */
-            addScriptTag  : function(toModule, tcScriptName)
-            {
-                if (toModule._tag === undefined)
-                {
-                    var lcScript = toModule.getPath(tcScriptName);
-                    var lcExt = this.getResourceExtension();
-                    var lcRegExpExt = lcExt.replace('.', '\\.');
-                    var loTestExp = new RegExp(lcRegExpExt + "$|" + lcRegExpExt + "\\?","i");
-                    var loReplaceExp = new RegExp("(\\?)|([^"+ lcRegExpExt +"].)$");
-                    lcScript = (loTestExp.test(lcScript)) ? lcScript : lcScript.replace(loReplaceExp, "$2" + lcExt + "$1");
-
-                    // See if the script has already been loaded
-                    toModule._tag = g_oDromos.utilities.getScript(lcScript);
-                    if (toModule._tag === null)
-                    {
-                        var loSelf = this;
-                        console.debug("adding script " + lcScript);
-                        var loTag = document.createElement("script");
-                        loTag.type = "text/javascript";
-                        loTag.charset = "utf-8";
-                        loTag.async = true;
-                        loTag._module = toModule;
-                        toModule._tag = loTag;
-                        g_oDromos.utilities.addEventListener(loTag, function(toEvent){loSelf.onResourceLoaded.call(loSelf, toEvent);}, loTag.detachEvent ? "readystatechange" : "load");
-                        g_oDromos.utilities.addEventListener(loTag, function(toEvent){loSelf.onResourceError.call(loSelf, toEvent);}, "error");
-                        document.getElementsByTagName("head")[0].appendChild(loTag);
-
-                        // Setting the src AFTER adding to the dom is on purpose to deal with some IE inconsistancies
-                        loTag.src = (!/.js$|.js\?/i.test(lcScript)) ? lcScript.replace(/(\?)|([^.js]$)/, "$2.js$1") : lcScript;
-                        g_oBase.console.debug("Added script for " + toModule.getName() + " ("+ loTag.src + ")");
-                    }
-                    else
-                    {
-                        console.debug("script " + lcScript + " has already been added");
-                        this.onResourceLoaded({"currentTarget" : toModule._tag});
-                    }
-                }
-            },
-             onResourceLoaded : function(toEvent)
-            {
-                var loSelf = this;
-                var loTag = toEvent.currentTarget || toEvent.srcElement;
-                if (loTag && loTag._module && (toEvent.type === "load" || (loTag && /^(loaded)$/.test(loTag.readyState))))
-                {
-                    var loModule = loTag._module;
-                    console.debug("Resource loaded " + loModule.getName() + ' - ' + toEvent.type + ' - - ' + loTag.readyState);
-                    g_oDromos.utilities.removeEventListener(loTag, function(toEvent){loSelf.onResourceLoaded.call(loSelf, toEvent);}, loTag.detachEvent ? "readystatechange" : "load");
-                    g_oDromos.utilities.removeEventListener(loTag, function(toEvent){loSelf.onResourceError.call(loSelf, toEvent);}, "error");
-                    loModule.onCompletedLoading(loModule);
-                    this.onCompleted(loModule);
-                }
-                console.debug("ReadyStateChange loaded " + loTag._module.getName() + ' - ' + toEvent.type + ' - - ' + loTag.readyState);
-            },
-            onResourceError : function(toEvent)
-            {
-                var loTag = toEvent.currentTarget || toEvent.srcElement;
-                if (loTag && loTag._module)
-                {
-                    var loModule = loTag._module;
-                    g_oDromos.utilities.removeEventListener(loTag, function(toEvent){loSelf.onResourceLoaded.call(this, toEvent);}, loTag.detachEvent ? "readystatechange" : "load");
-                    g_oDromos.utilities.removeEventListener(loTag, function(toEvent){loSelf.onResourceError.call(this, toEvent);}, "error");
-                    this.onError(loModule);
-                }
-            },
-            // Executed when there is an error loading the script, can be overridden
-            onError : function(toModule){g_oBase.console.error(toModule.getName() + " was not loaded");},
-            // Occurs once the module has completed loading
-            onCompleted : function(toModule){g_oBase.console.debug(toModule.getName() + " is completed");}
-        };
-
-        g_oDromos.Bootstrap.Plugin.extend = function(toSubclass)
-        {
-            var loPrototype = new this();
-            var loSuperClass = this.prototype;
-
-            for (var lcProperty in toSubclass)
-            {
-                if (loPrototype[lcProperty])
-                {
-                    loPrototype["_"+lcProperty] = loPrototype[lcProperty];
-                }
-                loPrototype[lcProperty] = toSubclass[lcProperty];
-            }
-            function Class(){}
-            Class.prototype = loPrototype;
-            Class.prototype.constructor = Class;
-            Class.extend = arguments.callee;
-            return Class;
-        };
-
-        /*****************************************************************************
-         * END PLUGIN
-        *****************************************************************************/
 
         /*****************************************************************************
          * REQUIRE AND CONFIGURATION
@@ -863,83 +131,82 @@ if (!this["_dromos_initialised"])
         // Define the require function, clobbers any existing require,
         // if a require exists but is an object, it will be stored and used
         // as a configuration object
-        var loConfig = [
-            {
+        var loConfig = {
                 version : __VERSION__,
                 debug : __DEBUG__,
+                baseUrl : g_oDromos.Bootstrap.getBaseURI(),
                 paths : {
-                    "underscore" : g_oDromos.Bootstrap.getDromosRoot() + "lib/underscore.js",
-                    "backbone" : g_oDromos.Bootstrap.getDromosRoot() + "lib/backbone-min.js",
-                    "jquery" : g_oDromos.Bootstrap.getDromosRoot() + "lib/jquery.min.js",
-                    "jqueryui" : g_oDromos.Bootstrap.getDromosRoot() + "lib/jquery-ui.min.js"
+                    'dromos': g_oDromos.Bootstrap.getDromosRoot() + 'dromos',
+                    'dromos.utilities': g_oDromos.Bootstrap.getDromosRoot() + 'dromos.utilities',
+                    'underscore' :  g_oDromos.Bootstrap.getDromosRoot() + 'lib/underscore',
+                    'backbone' :  g_oDromos.Bootstrap.getDromosRoot() + 'lib/backbone-min',
+                    'jquery' :  g_oDromos.Bootstrap.getDromosRoot()+ 'lib/jquery.min',
+                    'jqueryui' :  g_oDromos.Bootstrap.getDromosRoot() + 'lib/jquery-ui.min'
+                },
+                shim : {
+                    'dromos' : {'deps' : ['jquery', 'underscore', 'backbone', 'jqueryui']},
+                    'jqueryui' : {
+                        'deps' : ['jquery'],
+                        'init' : function()
+                        {
+                            g_oDromos.$jQ = jQuery.noConflict(true);
+                            define("jquery", g_oDromos.$jQ);
+                            define("jqueryui", g_oDromos.$jQ);
+                        }
+                    },
+                    'backbone' : {
+                        'deps' : ['underscore', 'jquery'],
+                        'init' : function()
+                        {
+                            g_oDromos._ = _.noConflict();
+                            define("underscore", [], function(){return g_oDromos._;});
+
+                            g_oDromos.$bb = Backbone.noConflict();
+                            define("backbone", [], function(){return g_oDromos.$bb;});
+                        }
                     }
-            },  g_oBase['require'] || {}
-        ];
 
-        /**
-         * Dynamically loads the specified modules and dependencies, and once the
-         * dependencies are resolved the callback if cclled with each module as a parameter
-         * @param  String OR Array[String] the module or list of modules needed for the callback.
-         * @param  the callback function.  This function will be called with each module as a parameter in the order specified by taModules
-         */
-        g_oBase["require"] = function(taModules, toCallback)
-        {
-            console.debug("REQUIRING : " + taModules);
-            var loModule = g_oDromos.Bootstrap.loadModule(dromos.utilities.isType(taModules, "Array") ? taModules : [taModules]);
-            if (toCallback)
-            {
-                loModule.addCallback(toCallback);
-            }
-            // Return the module, this is for calls such as "require('jquery')" which do not need a callback
-            return loModule.isLoaded() ? loModule.getDefinition(0) : null;
-        };
-
-        /**
-         * Defines the require function for dromos.  This function will accept an object or an array of objects as it's
-         * parameter.  If an array of objects the properties are applied in the order given in the array.
-         *
-         * This method is called on loading of dromos and can be called at any time by the developer to adjust
-         * properties
-         * @param  Object or array, the configuration options
-         */
-        g_oBase["require"].config = function(toConfig)
-        {
-            toConfig = dromos.utilities.isType(toConfig, "Array") ? toConfig : [toConfig];
-            for (var i = 0, lnLength = toConfig.length; i<lnLength; i++)
-            {
-                var loConfig = toConfig[i];
-
-                // Turn debugging messages on or off
-                if (loConfig['debug'] !== undefined)
-                {
-                    console.debug("Turning debug " + (loConfig["debug"] ? " ON " : " OFF "));
-                    g_oBase.console.debug = loConfig['debug'] ? function(tcMessage){g_oBase.console.log(tcMessage);} :function(){};
                 }
+            };
 
-                // Update the paths based on the configuration
-                 if (loConfig['paths'] !== undefined)
-                {
-                    for (var lcPath in loConfig['paths'])
-                    {
-                        g_oDromos.Bootstrap.setPath(lcPath, loConfig.paths[lcPath]);
-                    }
-                }
+        /*
+         RequireJS 2.1.2 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+         Available via the MIT or new BSD license.
+         see: http://github.com/jrburke/requirejs for details
+        */
+        var requirejs,require,define;
+        (function(Y){function H(b){return"[object Function]"===L.call(b)}function I(b){return"[object Array]"===L.call(b)}function x(b,c){if(b){var d;for(d=0;d<b.length&&(!b[d]||!c(b[d],d,b));d+=1);}}function M(b,c){if(b){var d;for(d=b.length-1;-1<d&&(!b[d]||!c(b[d],d,b));d-=1);}}function r(b,c){return da.call(b,c)}function i(b,c){return r(b,c)&&b[c]}function E(b,c){for(var d in b)if(r(b,d)&&c(b[d],d))break}function Q(b,c,d,i){c&&E(c,function(c,h){if(d||!r(b,h))i&&"string"!==typeof c?(b[h]||(b[h]={}),Q(b[h],
+        c,d,i)):b[h]=c});return b}function t(b,c){return function(){return c.apply(b,arguments)}}function Z(b){if(!b)return b;var c=Y;x(b.split("."),function(b){c=c[b]});return c}function J(b,c,d,i){c=Error(c+"\nhttp://requirejs.org/docs/errors.html#"+b);c.requireType=b;c.requireModules=i;d&&(c.originalError=d);return c}function ea(b){function c(a,g,v){var e,n,b,c,d,j,f,h=g&&g.split("/");e=h;var l=m.map,k=l&&l["*"];if(a&&"."===a.charAt(0))if(g){e=i(m.pkgs,g)?h=[g]:h.slice(0,h.length-1);g=a=e.concat(a.split("/"));
+        for(e=0;g[e];e+=1)if(n=g[e],"."===n)g.splice(e,1),e-=1;else if(".."===n)if(1===e&&(".."===g[2]||".."===g[0]))break;else 0<e&&(g.splice(e-1,2),e-=2);e=i(m.pkgs,g=a[0]);a=a.join("/");e&&a===g+"/"+e.main&&(a=g)}else 0===a.indexOf("./")&&(a=a.substring(2));if(v&&(h||k)&&l){g=a.split("/");for(e=g.length;0<e;e-=1){b=g.slice(0,e).join("/");if(h)for(n=h.length;0<n;n-=1)if(v=i(l,h.slice(0,n).join("/")))if(v=i(v,b)){c=v;d=e;break}if(c)break;!j&&(k&&i(k,b))&&(j=i(k,b),f=e)}!c&&j&&(c=j,d=f);c&&(g.splice(0,d,
+        c),a=g.join("/"))}return a}function d(a){z&&x(document.getElementsByTagName("script"),function(g){if(g.getAttribute("data-requiremodule")===a&&g.getAttribute("data-requirecontext")===j.contextName)return g.parentNode.removeChild(g),!0})}function y(a){var g=i(m.paths,a);if(g&&I(g)&&1<g.length)return d(a),g.shift(),j.require.undef(a),j.require([a]),!0}function f(a){var g,b=a?a.indexOf("!"):-1;-1<b&&(g=a.substring(0,b),a=a.substring(b+1,a.length));return[g,a]}function h(a,g,b,e){var n,u,d=null,h=g?g.name:
+        null,l=a,m=!0,k="";a||(m=!1,a="_@r"+(L+=1));a=f(a);d=a[0];a=a[1];d&&(d=c(d,h,e),u=i(p,d));a&&(d?k=u&&u.normalize?u.normalize(a,function(a){return c(a,h,e)}):c(a,h,e):(k=c(a,h,e),a=f(k),d=a[0],k=a[1],b=!0,n=j.nameToUrl(k)));b=d&&!u&&!b?"_unnormalized"+(M+=1):"";return{prefix:d,name:k,parentMap:g,unnormalized:!!b,url:n,originalName:l,isDefine:m,id:(d?d+"!"+k:k)+b}}function q(a){var g=a.id,b=i(k,g);b||(b=k[g]=new j.Module(a));return b}function s(a,g,b){var e=a.id,n=i(k,e);if(r(p,e)&&(!n||n.defineEmitComplete))"defined"===
+        g&&b(p[e]);else q(a).on(g,b)}function C(a,g){var b=a.requireModules,e=!1;if(g)g(a);else if(x(b,function(g){if(g=i(k,g))g.error=a,g.events.error&&(e=!0,g.emit("error",a))}),!e)l.onError(a)}function w(){R.length&&(fa.apply(F,[F.length-1,0].concat(R)),R=[])}function A(a,g,b){var e=a.map.id;a.error?a.emit("error",a.error):(g[e]=!0,x(a.depMaps,function(e,c){var d=e.id,h=i(k,d);h&&(!a.depMatched[c]&&!b[d])&&(i(g,d)?(a.defineDep(c,p[d]),a.check()):A(h,g,b))}),b[e]=!0)}function B(){var a,g,b,e,n=(b=1E3*m.waitSeconds)&&
+        j.startTime+b<(new Date).getTime(),c=[],h=[],f=!1,l=!0;if(!T){T=!0;E(k,function(b){a=b.map;g=a.id;if(b.enabled&&(a.isDefine||h.push(b),!b.error))if(!b.inited&&n)y(g)?f=e=!0:(c.push(g),d(g));else if(!b.inited&&(b.fetched&&a.isDefine)&&(f=!0,!a.prefix))return l=!1});if(n&&c.length)return b=J("timeout","Load timeout for modules: "+c,null,c),b.contextName=j.contextName,C(b);l&&x(h,function(a){A(a,{},{})});if((!n||e)&&f)if((z||$)&&!U)U=setTimeout(function(){U=0;B()},50);T=!1}}function D(a){r(p,a[0])||
+        q(h(a[0],null,!0)).init(a[1],a[2])}function G(a){var a=a.currentTarget||a.srcElement,b=j.onScriptLoad;a.detachEvent&&!V?a.detachEvent("onreadystatechange",b):a.removeEventListener("load",b,!1);b=j.onScriptError;(!a.detachEvent||V)&&a.removeEventListener("error",b,!1);return{node:a,id:a&&a.getAttribute("data-requiremodule")}}function K(){var a;for(w();F.length;){a=F.shift();if(null===a[0])return C(J("mismatch","Mismatched anonymous define() module: "+a[a.length-1]));D(a)}}var T,W,j,N,U,m={waitSeconds:7,
+        baseUrl:"./",paths:{},pkgs:{},shim:{},map:{},config:{}},k={},X={},F=[],p={},S={},L=1,M=1;N={require:function(a){return a.require?a.require:a.require=j.makeRequire(a.map)},exports:function(a){a.usingExports=!0;if(a.map.isDefine)return a.exports?a.exports:a.exports=p[a.map.id]={}},module:function(a){return a.module?a.module:a.module={id:a.map.id,uri:a.map.url,config:function(){return m.config&&i(m.config,a.map.id)||{}},exports:p[a.map.id]}}};W=function(a){this.events=i(X,a.id)||{};this.map=a;this.shim=
+        i(m.shim,a.id);this.depExports=[];this.depMaps=[];this.depMatched=[];this.pluginMaps={};this.depCount=0};W.prototype={init:function(a,b,c,e){e=e||{};if(!this.inited){this.factory=b;if(c)this.on("error",c);else this.events.error&&(c=t(this,function(a){this.emit("error",a)}));this.depMaps=a&&a.slice(0);this.errback=c;this.inited=!0;this.ignore=e.ignore;e.enabled||this.enabled?this.enable():this.check()}},defineDep:function(a,b){this.depMatched[a]||(this.depMatched[a]=!0,this.depCount-=1,this.depExports[a]=
+        b)},fetch:function(){if(!this.fetched){this.fetched=!0;j.startTime=(new Date).getTime();var a=this.map;if(this.shim)j.makeRequire(this.map,{enableBuildCallback:!0})(this.shim.deps||[],t(this,function(){return a.prefix?this.callPlugin():this.load()}));else return a.prefix?this.callPlugin():this.load()}},load:function(){var a=this.map.url;S[a]||(S[a]=!0,j.load(this.map.id,a))},check:function(){if(this.enabled&&!this.enabling){var a,b,c=this.map.id;b=this.depExports;var e=this.exports,n=this.factory;
+        if(this.inited)if(this.error)this.emit("error",this.error);else{if(!this.defining){this.defining=!0;if(1>this.depCount&&!this.defined){if(H(n)){if(this.events.error)try{e=j.execCb(c,n,b,e)}catch(d){a=d}else e=j.execCb(c,n,b,e);this.map.isDefine&&((b=this.module)&&void 0!==b.exports&&b.exports!==this.exports?e=b.exports:void 0===e&&this.usingExports&&(e=this.exports));if(a)return a.requireMap=this.map,a.requireModules=[this.map.id],a.requireType="define",C(this.error=a)}else e=n;this.exports=e;if(this.map.isDefine&&
+        !this.ignore&&(p[c]=e,l.onResourceLoad))l.onResourceLoad(j,this.map,this.depMaps);delete k[c];this.defined=!0}this.defining=!1;this.defined&&!this.defineEmitted&&(this.defineEmitted=!0,this.emit("defined",this.exports),this.defineEmitComplete=!0)}}else this.fetch()}},callPlugin:function(){var a=this.map,b=a.id,d=h(a.prefix);this.depMaps.push(d);s(d,"defined",t(this,function(e){var n,d;d=this.map.name;var v=this.map.parentMap?this.map.parentMap.name:null,f=j.makeRequire(a.parentMap,{enableBuildCallback:!0,
+        skipMap:!0});if(this.map.unnormalized){if(e.normalize&&(d=e.normalize(d,function(a){return c(a,v,!0)})||""),e=h(a.prefix+"!"+d,this.map.parentMap),s(e,"defined",t(this,function(a){this.init([],function(){return a},null,{enabled:!0,ignore:!0})})),d=i(k,e.id)){this.depMaps.push(e);if(this.events.error)d.on("error",t(this,function(a){this.emit("error",a)}));d.enable()}}else n=t(this,function(a){this.init([],function(){return a},null,{enabled:!0})}),n.error=t(this,function(a){this.inited=!0;this.error=
+        a;a.requireModules=[b];E(k,function(a){0===a.map.id.indexOf(b+"_unnormalized")&&delete k[a.map.id]});C(a)}),n.fromText=t(this,function(e,c){var d=a.name,u=h(d),v=O;c&&(e=c);v&&(O=!1);q(u);r(m.config,b)&&(m.config[d]=m.config[b]);try{l.exec(e)}catch(k){throw Error("fromText eval for "+d+" failed: "+k);}v&&(O=!0);this.depMaps.push(u);j.completeLoad(d);f([d],n)}),e.load(a.name,f,n,m)}));j.enable(d,this);this.pluginMaps[d.id]=d},enable:function(){this.enabling=this.enabled=!0;x(this.depMaps,t(this,function(a,
+        b){var c,e;if("string"===typeof a){a=h(a,this.map.isDefine?this.map:this.map.parentMap,!1,!this.skipMap);this.depMaps[b]=a;if(c=i(N,a.id)){this.depExports[b]=c(this);return}this.depCount+=1;s(a,"defined",t(this,function(a){this.defineDep(b,a);this.check()}));this.errback&&s(a,"error",this.errback)}c=a.id;e=k[c];!r(N,c)&&(e&&!e.enabled)&&j.enable(a,this)}));E(this.pluginMaps,t(this,function(a){var b=i(k,a.id);b&&!b.enabled&&j.enable(a,this)}));this.enabling=!1;this.check()},on:function(a,b){var c=
+        this.events[a];c||(c=this.events[a]=[]);c.push(b)},emit:function(a,b){x(this.events[a],function(a){a(b)});"error"===a&&delete this.events[a]}};j={config:m,contextName:b,registry:k,defined:p,urlFetched:S,defQueue:F,Module:W,makeModuleMap:h,nextTick:l.nextTick,configure:function(a){a.baseUrl&&"/"!==a.baseUrl.charAt(a.baseUrl.length-1)&&(a.baseUrl+="/");var b=m.pkgs,c=m.shim,e={paths:!0,config:!0,map:!0};E(a,function(a,b){e[b]?"map"===b?Q(m[b],a,!0,!0):Q(m[b],a,!0):m[b]=a});a.shim&&(E(a.shim,function(a,
+        b){I(a)&&(a={deps:a});if((a.exports||a.init)&&!a.exportsFn)a.exportsFn=j.makeShimExports(a);c[b]=a}),m.shim=c);a.packages&&(x(a.packages,function(a){a="string"===typeof a?{name:a}:a;b[a.name]={name:a.name,location:a.location||a.name,main:(a.main||"main").replace(ga,"").replace(aa,"")}}),m.pkgs=b);E(k,function(a,b){!a.inited&&!a.map.unnormalized&&(a.map=h(b))});if(a.deps||a.callback)j.require(a.deps||[],a.callback)},makeShimExports:function(a){return function(){var b;a.init&&(b=a.init.apply(Y,arguments));
+        return b||a.exports&&Z(a.exports)}},makeRequire:function(a,d){function f(e,c,u){var i,m;d.enableBuildCallback&&(c&&H(c))&&(c.__requireJsBuild=!0);if("string"===typeof e){if(H(c))return C(J("requireargs","Invalid require call"),u);if(a&&r(N,e))return N[e](k[a.id]);if(l.get)return l.get(j,e,a);i=h(e,a,!1,!0);i=i.id;return!r(p,i)?C(J("notloaded",'Module name "'+i+'" has not been loaded yet for context: '+b+(a?"":". Use require([])"))):p[i]}K();j.nextTick(function(){K();m=q(h(null,a));m.skipMap=d.skipMap;
+        m.init(e,c,u,{enabled:!0});B()});return f}d=d||{};Q(f,{isBrowser:z,toUrl:function(b){var d=b.lastIndexOf("."),g=null;-1!==d&&(g=b.substring(d,b.length),b=b.substring(0,d));return j.nameToUrl(c(b,a&&a.id,!0),g)},defined:function(b){return r(p,h(b,a,!1,!0).id)},specified:function(b){b=h(b,a,!1,!0).id;return r(p,b)||r(k,b)}});a||(f.undef=function(b){w();var c=h(b,a,!0),d=i(k,b);delete p[b];delete S[c.url];delete X[b];d&&(d.events.defined&&(X[b]=d.events),delete k[b])});return f},enable:function(a){i(k,
+        a.id)&&q(a).enable()},completeLoad:function(a){var b,c,d=i(m.shim,a)||{},h=d.exports;for(w();F.length;){c=F.shift();if(null===c[0]){c[0]=a;if(b)break;b=!0}else c[0]===a&&(b=!0);D(c)}c=i(k,a);if(!b&&!r(p,a)&&c&&!c.inited){if(m.enforceDefine&&(!h||!Z(h)))return y(a)?void 0:C(J("nodefine","No define call for "+a,null,[a]));D([a,d.deps||[],d.exportsFn])}B()},nameToUrl:function(a,b){var c,d,h,f,j,k;if(l.jsExtRegExp.test(a))f=a+(b||"");else{c=m.paths;d=m.pkgs;f=a.split("/");for(j=f.length;0<j;j-=1)if(k=
+        f.slice(0,j).join("/"),h=i(d,k),k=i(c,k)){I(k)&&(k=k[0]);f.splice(0,j,k);break}else if(h){c=a===h.name?h.location+"/"+h.main:h.location;f.splice(0,j,c);break}f=f.join("/");f+=b||(/\?/.test(f)?"":".js");f=("/"===f.charAt(0)||f.match(/^[\w\+\.\-]+:/)?"":m.baseUrl)+f}return m.urlArgs?f+((-1===f.indexOf("?")?"?":"&")+m.urlArgs):f},load:function(a,b){l.load(j,a,b)},execCb:function(a,b,c,d){return b.apply(d,c)},onScriptLoad:function(a){if("load"===a.type||ha.test((a.currentTarget||a.srcElement).readyState))P=
+        null,a=G(a),j.completeLoad(a.id)},onScriptError:function(a){var b=G(a);if(!y(b.id))return C(J("scripterror","Script error",a,[b.id]))}};j.require=j.makeRequire();return j}var l,w,A,D,s,G,P,K,ba,ca,ia=/(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,ja=/[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,aa=/\.js$/,ga=/^\.\//;w=Object.prototype;var L=w.toString,da=w.hasOwnProperty,fa=Array.prototype.splice,z=!!("undefined"!==typeof window&&navigator&&document),$=!z&&"undefined"!==typeof importScripts,ha=z&&
+        "PLAYSTATION 3"===navigator.platform?/^complete$/:/^(complete|loaded)$/,V="undefined"!==typeof opera&&"[object Opera]"===opera.toString(),B={},q={},R=[],O=!1;if("undefined"===typeof define){if("undefined"!==typeof requirejs){if(H(requirejs))return;q=requirejs;requirejs=void 0}"undefined"!==typeof require&&!H(require)&&(q=require,require=void 0);l=requirejs=function(b,c,d,y){var f,h="_";!I(b)&&"string"!==typeof b&&(f=b,I(c)?(b=c,c=d,d=y):b=[]);f&&f.context&&(h=f.context);(y=i(B,h))||(y=B[h]=l.s.newContext(h));
+        f&&y.configure(f);return y.require(b,c,d)};l.config=function(b){return l(b)};l.nextTick="undefined"!==typeof setTimeout?function(b){setTimeout(b,4)}:function(b){b()};require||(require=l);l.version="2.1.2";l.jsExtRegExp=/^\/|:|\?|\.js$/;l.isBrowser=z;w=l.s={contexts:B,newContext:ea};l({});x(["toUrl","undef","defined","specified"],function(b){l[b]=function(){var c=B._;return c.require[b].apply(c,arguments)}});if(z&&(A=w.head=document.getElementsByTagName("head")[0],D=document.getElementsByTagName("base")[0]))A=
+        w.head=D.parentNode;l.onError=function(b){throw b;};l.load=function(b,c,d){var i=b&&b.config||{},f;if(z)return f=i.xhtml?document.createElementNS("http://www.w3.org/1999/xhtml","html:script"):document.createElement("script"),f.type=i.scriptType||"text/javascript",f.charset="utf-8",f.async=!0,f.setAttribute("data-requirecontext",b.contextName),f.setAttribute("data-requiremodule",c),f.attachEvent&&!(f.attachEvent.toString&&0>f.attachEvent.toString().indexOf("[native code"))&&!V?(O=!0,f.attachEvent("onreadystatechange",
+        b.onScriptLoad)):(f.addEventListener("load",b.onScriptLoad,!1),f.addEventListener("error",b.onScriptError,!1)),f.src=d,K=f,D?A.insertBefore(f,D):A.appendChild(f),K=null,f;$&&(importScripts(d),b.completeLoad(c))};z&&M(document.getElementsByTagName("script"),function(b){A||(A=b.parentNode);if(s=b.getAttribute("data-main"))return q.baseUrl||(G=s.split("/"),ba=G.pop(),ca=G.length?G.join("/")+"/":"./",q.baseUrl=ca,s=ba),s=s.replace(aa,""),q.deps=q.deps?q.deps.concat(s):[s],!0});define=function(b,c,d){var i,
+        f;"string"!==typeof b&&(d=c,c=b,b=null);I(c)||(d=c,c=[]);!c.length&&H(d)&&d.length&&(d.toString().replace(ia,"").replace(ja,function(b,d){c.push(d)}),c=(1===d.length?["require"]:["require","exports","module"]).concat(c));if(O){if(!(i=K))P&&"interactive"===P.readyState||M(document.getElementsByTagName("script"),function(b){if("interactive"===b.readyState)return P=b}),i=P;i&&(b||(b=i.getAttribute("data-requiremodule")),f=B[i.getAttribute("data-requirecontext")])}(f?f.defQueue:R).push([b,c,d])};define.amd=
+        {jQuery:!0};l.exec=function(b){return eval(b)};l(q)}})(this);
 
-                // Loop through all of the properties and set them
-                for (var lcProperty in loConfig)
-                {
-                    if (lcProperty === "debug" || lcProperty === "paths"){}
-                    else if (lcProperty === 'baseURI')
-                    {
-                        g_oDromos.Bootstrap[lcProperty] = loConfig[lcProperty] + (/.+\/$/.test(loConfig[lcProperty]) ? '' : '/');
-                    }
-                    else
-                    {
-                        g_oDromos.Bootstrap[lcProperty] = loConfig[lcProperty];
-                    }
-                }
-            }
-        };
+        g_oBase.require = require;
+        g_oBase.define = define;
 
         // Configure require
         require.config(loConfig);
@@ -948,79 +215,12 @@ if (!this["_dromos_initialised"])
          * END REQUIRE AND CONFIGURATION
         *****************************************************************************/
 
-        /*****************************************************************************
-         * DEFINE
-        *****************************************************************************/
-
-        g_oBase['define'] = function(tcModuleName, taDependencies, toCallback)
-        {
-            // Normalise the parameters
-            toCallback = toCallback || taDependencies || tcModuleName;
-            taDependencies = g_oDromos.utilities.isType(taDependencies, "Array") ? taDependencies :
-                g_oDromos.utilities.isType(tcModuleName, "Array") ? tcModuleName : [];
-            tcModuleName = g_oDromos.utilities.isType(tcModuleName, "String") ? tcModuleName : null;
-
-            // See if we can determine a script name
-            var laScripts = document.getElementsByTagName('script');
-            if(laScripts.length > 0 && laScripts[0].readyState)
-            {
-                for(var i=laScripts.length -1, lnLength = 0; i>=lnLength; i--)
-                {
-                    if (laScripts[i].readyState==='interactive' && laScripts[i]._module)
-                    {
-                        loScript = laScripts[i];
-                        tcModuleName = laScripts[i]._module.getName();
-                        console.debug("DISCOVERED " + tcModuleName + " as " + (typeof(toCallback)));
-                        g_oDromos.Bootstrap._outstandingDefinition = {"dependencies" : taDependencies,
-                                                                                                "callback" : toCallback};
-                        return;
-                    }
-                }
-            }
-
-            if (tcModuleName)
-            {
-                // In this case we are specifically defining a module.  If a module of this name already exists it WILL be overwritten
-                console.debug("DEFINING " + tcModuleName + " as " + (typeof(toCallback)) + " with [" + taDependencies + ']');
-                var loModule = g_oDromos.Bootstrap.createModule(tcModuleName, g_oDromos.utilities.isType(toCallback, "Function") ? toCallback.apply(this) : toCallback);
-            }
-            else
-            {
-                // This is an anonymous module, a define from a script load
-                console.debug("DEFINING anonymous module as " + (g_oDromos.utilities.isType(toCallback, "Function") ? "Function" : "Object") + " with [" + taDependencies + ']');
-                g_oDromos.Bootstrap._outstandingDefinition = {"dependencies" : taDependencies,
-                                                                                                "callback" : toCallback};
-            }
-
-
-        };
-        g_oBase["define"].amd = {jQuery:true};
-
-        /*****************************************************************************
-         * END DEFINE
-        *****************************************************************************/
-
         /**
-         * There are issues with underscore and backbone in an AMD environment, the following function
-         * ensures that they are loaded (and accessible)
+         * And off we go
          * */
-        require(["order!jquery", "order!underscore", "order!backbone", "order!jqueryui"], function(jQuery)
+        require(['dromos'], function(dromos)
         {
-            // Clean up the namespaces
-            g_oDromos.$jQ = jQuery.noConflict();
-            g_oDromos._ = _.noConflict();
-            g_oDromos.$bb = Backbone.noConflict();
-            define("jqueryui", g_oDromos.$jQ);
-
-            // Define the modules in dromos
-            define("underscore", [], function(){return g_oDromos._;});
-            define("backbone", [], function(){return g_oDromos.$bb;});
-
-            // This is here instead of in the require as the setup above needs to take place to
-            // allow jquery, underscore, and backbone to take part in amd loading
-            require(["dromos"], function(){
-                // Nothing to do here.
-            });
+            // Nothing to do.
         });
     })(this);
 }

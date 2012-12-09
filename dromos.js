@@ -27,7 +27,7 @@ define(["jquery", "dromos.utilities"], function($jQ, utilities)
 		var loCurrent = dromos.base[laParts[0]];
 		for (var i=1, lnLength=laParts.length; i<lnLength; i++)
 		{
-			loCurrent = loCurrent[laParts[i]] || {};
+			loCurrent = loCurrent[laParts[i]] = (loCurrent[laParts[i]] || {});
 		}
 		return loCurrent;
 	};
@@ -73,7 +73,7 @@ define(["jquery", "dromos.utilities"], function($jQ, utilities)
 					var lcInit = loElement.attr(__DROMOS_INIT__);
 					var lcConfig = loElement.attr(__DROMOS_CONFIG__);
 					loElement.removeAttr(__DROMOS_PLUGIN__).removeAttr(__DROMOS_INIT__).removeAttr(__DROMOS_CONFIG__);
-					require(lcModule, function(toModule)
+					require([lcModule], function(toModule)
 						{
 							dromos.utilities.initialiseModule(toModule, toElement, tnIndex, lcInit, dromos.base[lcConfig]);
 						});
