@@ -282,7 +282,7 @@ define(["jquery"],
         		function(tcTagName){return (dromos.utilities.createElement[tcTagName] = dromos.utilities.createElement[tcTagName] || document.createElement(tcTagName)).cloneNode(false);};
         })(),
         // Creates a callback function which will call toMethod on toTarget and return the result.
-        createCallback : function(toMethod, toTarget){return function(){toMethod.apply(toTarget, arguments);}}
+        createCallback : function(toMethod, toTarget){return function(){return toMethod.apply(toTarget, arguments);}}
 	};
 	return dromos.utilities;
 });
