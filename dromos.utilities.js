@@ -3,10 +3,9 @@ dromos javascript library utilities.
 
 This contains helper functions used by the dromos libraries
 =============================*/
-define(["jquery"],
+define(['jquery'],
 	function($jQ)
 {
-
 	/*********************
      * UPDATE THE STRING PROTOTYPE
      *********************/

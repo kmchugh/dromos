@@ -106,7 +106,7 @@ if (!this["_dromos_initialised"])
                  * Gets the default root, this is the location to use as the base url when loading relative script locations
                  * @return the location to use as the base url
                  */
-                getBaseURI : function(){return this.baseURI;},
+                getBaseURI : function(){return this.baseURI[this.baseURI.length-1] == '/' ? this.baseURI: this.baseURI+'/';},
 
                 /**
                  * Gets the root of the dromos library.  This will be used when loading any dromos related libraries
@@ -119,7 +119,7 @@ if (!this["_dromos_initialised"])
                  * @param  String or Array[String] taScripts the name of the scripts to normalise
                  * @return a string representation of the module name
                  */
-                normaliseName : function(taScripts){return (dromos.utilities.isType(taScripts, 'Array') ? taScripts : [taScripts]).join('|').toLowerCase().replace(/(^|\|)[^\!|\|]+\!/g, '$1');},
+                normaliseName : function(taScripts){return (dromos.utilities.isType(taScripts, 'Array') ? taScripts : [taScripts]).join('|').toLowerCase().replace(/(^|\|)[^\!|\|]+\!/g, '$1');}
           };
      })(toBase);
 
@@ -134,7 +134,7 @@ if (!this["_dromos_initialised"])
         var loConfig = {
                 version : __VERSION__,
                 debug : __DEBUG__,
-                baseUrl : g_oDromos.Bootstrap.getBaseURI(),
+                baseUrl : g_oDromos.Bootstrap.getDromosRoot(),
                 paths : {
                     'dromos': g_oDromos.Bootstrap.getDromosRoot() + 'dromos',
                     'dromos.utilities': g_oDromos.Bootstrap.getDromosRoot() + 'dromos.utilities',
@@ -144,7 +144,7 @@ if (!this["_dromos_initialised"])
                     'jqueryui' :  g_oDromos.Bootstrap.getDromosRoot() + 'lib/jquery-ui.min'
                 },
                 shim : {
-                    'dromos' : {'deps' : ['jquery', 'underscore', 'backbone', 'jqueryui']},
+                    'dromos' : ['underscore', 'backbone'],
                     'jqueryui' : {
                         'deps' : ['jquery'],
                         'init' : function()
@@ -152,17 +152,20 @@ if (!this["_dromos_initialised"])
                             g_oDromos.$jQ = jQuery.noConflict(true);
                             define("jquery", g_oDromos.$jQ);
                             define("jqueryui", g_oDromos.$jQ);
+                            return g_oDromos.$jQ;
+                        }
+                    },
+                    'underscore' : {
+                        'init' : function()
+                        {
+                            return g_oDromos._ = _.noConflict();
                         }
                     },
                     'backbone' : {
-                        'deps' : ['underscore', 'jquery'],
+                        'deps' : ['underscore', 'jqueryui'],
                         'init' : function()
                         {
-                            g_oDromos._ = _.noConflict();
-                            define("underscore", [], function(){return g_oDromos._;});
-
-                            g_oDromos.$bb = Backbone.noConflict();
-                            define("backbone", [], function(){return g_oDromos.$bb;});
+                            return g_oDromos.$bb = Backbone.noConflict();
                         }
                     }
 
@@ -207,6 +210,17 @@ if (!this["_dromos_initialised"])
 
         g_oBase.require = require;
         g_oBase.define = define;
+
+        // Modify the require.config function to update the bootstrap properties as well
+        var lfnConfig = require.config;
+        require.config = function(toProperties)
+        {
+            lfnConfig(toProperties);
+            for(var lcProp in toProperties)
+            {
+                g_oDromos.Bootstrap[lcProp] = toProperties[lcProp];
+            }
+        }
 
         // Configure require
         require.config(loConfig);

@@ -15,9 +15,10 @@ test("REQUIRE BASE TEST", function()
 
     require(["jquery", "underscore", "backbone"], function($jQ, $_, $bb)
     {
-        QUnit.equal(dromos.$jQ, $jQ);
         QUnit.equal(dromos._, $_);
         QUnit.equal(dromos.$bb, $bb);
+        QUnit.equal(dromos.$jQ, $jQ);
+
         QUnit.start();
     });
 });

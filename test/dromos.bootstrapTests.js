@@ -22,12 +22,7 @@ test("REQUIRE : config", function()
     QUnit.equal(dromos.Bootstrap['property3'], 3);
     QUnit.equal(dromos.Bootstrap['property4'], 4);
 
-    require.config([{
-            "property1" : 1,
-            "property2" : 2,
-            "property3" : 3,
-            "property4" : 4
-            }, {'property1' : 4}]);
+    require.config({'property1' : 4});
 
     QUnit.equal(dromos.Bootstrap['property1'], 4);
     QUnit.equal(dromos.Bootstrap['property2'], 2);
@@ -79,165 +74,6 @@ test("BOOTSTRAP : normaliseName", function()
     QUnit.equal(dromos.Bootstrap.normaliseName(['jquery', 'bootstrap']), 'jquery|bootstrap');
 });
 
-test("BOOTSTRAP : setModule", function()
-{
-    var loModuleProxy = {getName : function(){return "module";}};
-
-    dromos.Bootstrap.setModule(loModuleProxy);
-    QUnit.equal(loModuleProxy, dromos.Bootstrap.getModule('module'));
-});
-
-test("BOOTSTRAP : getModule", function()
-{
-    var loModuleProxy = {getName : function(){return "module";}};
-
-    dromos.Bootstrap.setModule(loModuleProxy);
-    QUnit.equal(loModuleProxy, dromos.Bootstrap.getModule('module'));
-    QUnit.equal(null, dromos.Bootstrap.getModule('Module does not exist'));
-});
-
-test("BOOTSTRAP : hasModule", function()
-{
-    var loModuleProxy = {getName : function(){return "HasModuleProxy";}};
-    var loOtherModuleProxy = {getName : function(){return "HasModuleOtherProxy";}};
-    dromos.Bootstrap.addModule(loModuleProxy);
-    QUnit.ok(dromos.Bootstrap.hasModule(loModuleProxy));
-    QUnit.ok(!dromos.Bootstrap.hasModule(loOtherModuleProxy));
-});
-
-test("BOOTSTRAP : loadModule", function()
-{
-    var loModule = null;
-    loModule = dromos.Bootstrap.loadModule(['jquery']);
-    QUnit.equal(loModule.getName(), 'jquery');
-});
-
-test("BOOTSTRAP : createModule", function()
-{
-    QUnit.ok(!dromos.Bootstrap.hasModule('myCreateModuleTestModule'));
-
-    var loDef = {};
-    loModule = dromos.Bootstrap.createModule('myCreateModuleTestModule', loDef);
-
-    QUnit.ok(loModule.isLoaded());
-    QUnit.ok(dromos.Bootstrap.hasModule('myCreateModuleTestModule'));
-
-    loModule = dromos.Bootstrap.createModule('myCreateModuleTestModule_nodef');
-    QUnit.ok(!loModule.isLoaded());
-});
-
-test("BOOTSTRAP : addModule", function()
-{
-    var loModuleProxy = {getName : function(){return dromos.Bootstrap.normaliseName("addModuleProxyModule");}};
-
-    dromos.Bootstrap.addModule(loModuleProxy);
-    QUnit.equal(loModuleProxy, dromos.Bootstrap.getModule('addModuleProxyModule'));
-    QUnit.throws(function()
-    {
-        dromos.Bootstrap.addModule(loModuleProxy);
-    }, "Adding module to dromos a second time");
-});
-
-test("BOOTSTRAP : setPath", function()
-{
-    dromos.Bootstrap.setPath("myModule", 'my/custom/path');
-    QUnit.equal(dromos.Bootstrap.baseURI + 'my/custom/path', dromos.Bootstrap.getPath('myModule'));
-});
-
-test("BOOTSTRAP : getPath", function()
-{
-    dromos.Bootstrap.setPath("myModule", 'my/custom/path');
-    QUnit.equal(dromos.Bootstrap.baseURI + 'my/custom/path', dromos.Bootstrap.getPath('myModule'));
-    QUnit.equal(dromos.Bootstrap.getBaseURI() + 'myUndefinedModule', dromos.Bootstrap.getPath('myUndefinedModule'));
-
-    QUnit.equal(dromos.Bootstrap.baseURI + 'my/custom/path/object/test', dromos.Bootstrap.getPath('myModule/object/test'));
-
-    QUnit.equal('/myModule/object/test?version='+dromos.Bootstrap["version"], dromos.Bootstrap.getPath('/myModule/object/test'));
-
-
-
-    QUnit.equal('path/to/myUndefinedModule', dromos.Bootstrap.getPath('myUndefinedModule', 'path/to/'));
-});
-
-test("BOOTSTRAP : getDefaultPlugin", function()
-{
-    var loPlugin = dromos.Bootstrap.getDefaultPlugin();
-    QUnit.ok(loPlugin !== null);
-    QUnit.equal(loPlugin, dromos.Bootstrap.getDefaultPlugin());
-});
-
-/**
- * Tests that the module can be correctly constructed
- */
-test("MODULE CONSTRUCTOR TEST", function()
-{
-    var loModule = null;
-
-    QUnit.throws(function()
-            {
-                loModule = new dromos.Bootstrap.Module();
-            },
-            "Array not supplied to Module"
-        );
-
-    QUnit.throws(function()
-            {
-                loModule = new dromos.Bootstrap.Module("A non-array parameter");
-            },
-            "Array not supplied to Module"
-        );
-
-    QUnit.throws(function()
-            {
-                loModule = new dromos.Bootstrap.Module([]);
-            },
-            "Array not supplied to Module"
-        );
-
-    loModule = new dromos.Bootstrap.Module(['jquery1']);
-    QUnit.equal(loModule.getName(), "jquery1");
-    QUnit.ok(!loModule.hasCallbacks());
-
-    loModule = new dromos.Bootstrap.Module(['underscore', 'backbone']);
-    QUnit.equal(loModule.getName(), "underscore|backbone");
-    QUnit.ok(!loModule.hasCallbacks());
-
-    QUnit.throws(function()
-    {
-        loModule = new dromos.Bootstrap.Module(['jquery1'], function(){});
-    },
-    "Module already exists");
-});
-
-test("MODULE : addCallback", function()
-{
-    var loCallback= function(){};
-    var loModule = new dromos.Bootstrap.Module(["addCallbackTestModule"], loCallback);
-
-    QUnit.equal(loCallback, loModule.getCallbacks()[0]);
-});
-
-test("MODULE : getResources", function()
-{
-    var laScripts = ["getScriptsTestModule"];
-    var loModule = new dromos.Bootstrap.Module(laScripts);
-
-    QUnit.equal(laScripts, loModule.getResources());
-});
-
-test("MODULE : load", function()
-{
-    var loDef = {};
-    loModule = dromos.Bootstrap.createModule('myLoadModuleTestModule');
-    QUnit.ok(!loModule.isLoading());
-    QUnit.ok(!loModule.isLoaded());
-
-    loModule.load();
-    QUnit.ok(loModule.isLoading());
-    QUnit.ok(!loModule.isLoaded());
-});
-
-
 
 module("DROMOS BOOTSTRAP REQUIRE MODULE");
 
@@ -267,7 +103,7 @@ test("REQUIRE BASE TEST", function()
 test("REQUIRE EXTERNAL LOAD TEST", function()
 {
     QUnit.stop();
-    require("testModule/module1", function(toModule1)
+    require(["testModule/module1"], function(toModule1)
     {
         QUnit.equal(toModule1.text, "my module 1");
         QUnit.equal(toModule1.value, 23);
@@ -291,25 +127,39 @@ module("DROMOS BOOTSTRAP DEFINE MODULE");
 test("DEFINE INLINE FUNCTION TEST", function()
 {
     var loModuleDefinition = {};
-    var loFunction = function(){return loModuleDefinition;};
 
-    define("mydefine_inline_module", loFunction);
+    define("mydefine_inline_module", function(){return function(){return loModuleDefinition;}});
 
-    QUnit.equal(require('mydefine_inline_module'), loModuleDefinition);
+    QUnit.stop();
+    require(["mydefine_inline_module"], function(toInlineModule)
+    {
+        QUnit.equal(toInlineModule(), loModuleDefinition);
+
+        QUnit.start();
+    });
+
+
 });
 
 test("DEFINE INLINE OBJECT TEST", function()
 {
     var loModuleDefinition = {};
-    define("mydefine_inline_Object_module", loModuleDefinition);
 
-    QUnit.equal(require('mydefine_inline_Object_module'), loModuleDefinition);
+    define("mydefine_inline_object", function(){return loModuleDefinition;});
+
+    QUnit.stop();
+    require(["mydefine_inline_object"], function(toInlineModule)
+    {
+        QUnit.equal(toInlineModule, loModuleDefinition);
+
+        QUnit.start();
+    });
 });
 
 test("DEFINE INCLUDED OBJECT TEST", function()
 {
     QUnit.stop();
-    require("testModule/module1", function(toModule1)
+    require(["testModule/module1"], function(toModule1)
     {
         QUnit.equal(toModule1.text, "my module 1");
         QUnit.equal(toModule1.value, 23);
@@ -320,7 +170,7 @@ test("DEFINE INCLUDED OBJECT TEST", function()
 test("DEFINE INCLUDED FUNCTION TEST", function()
 {
     QUnit.stop();
-    require("testModule/module2", function(toModule2)
+    require(["testModule/module2"], function(toModule2)
     {
         QUnit.equal(toModule2.text, "my module 2");
         QUnit.equal(toModule2.value, 46);
