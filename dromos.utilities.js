@@ -61,6 +61,41 @@ define(['jquery'],
         return this.replace(/^\s+|\s+$/g, '');
     }
 
+    /**
+     * Functions for allowing animation of background opacity
+     */
+    var loRgba = /^rgba\((\d+),\s*(\d+),\s*(\d+)\,\s*(\d+(\.\d+)?)\)$/;
+    var loRgb = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/;
+
+    function getRgbaColorValue(toElement)
+    {
+        var loBackground = dromos.$jQ.css(toElement, 'background-color');
+        return (loBackground.indexOf('rgba') !== -1) ?
+            loRgba.exec(loBackground) :
+            loRgb.exec(loBackground);
+    };
+
+    dromos.$jQ.cssNumber.backgroundColorAlpha = true;
+    dromos.$jQ.cssHooks.backgroundColorAlpha =
+    {
+        get: function(toElement)
+        {
+            var laReturn = getRgbaColorValue(toElement);
+            return laReturn.length >= 4 ? laReturn[4] : 1;
+        },
+        set: function(toElement, tnValue)
+        {
+            var laColour = getRgbaColorValue(toElement);
+            toElement.style.backgroundColor = 'rgba(' + laColour[1] + ',' + laColour[2] + ',' + laColour[3] + ',' + tnValue + ')';
+        }
+    };
+
+    dromos.$jQ.fx.step.backgroundColorAlpha = function(toFX)
+    {
+        dromos.$jQ.cssHooks.backgroundColorAlpha.set(toFX.elem, toFX.now + toFX.unit);
+    };
+
+
     // Dromos utilities object
 	dromos.utilities = {
 
