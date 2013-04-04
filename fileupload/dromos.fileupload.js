@@ -8,7 +8,7 @@ define(["jquery", "jqueryui"], function($jQ)
         {
             options : {
                 wrapTemplate : '<div class="fileInput"></div>',
-                fakeTemplate : '<div class="fakeFile"><input /><div class="selectButton">Select</div></div>'
+                fakeTemplate : '<div class="fakeFile"><input /><div class="button">Select</div></div>'
             },
             _create : function()
             {
