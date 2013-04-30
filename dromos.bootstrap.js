@@ -165,6 +165,7 @@ if (!this["_dromos_initialised"])
                         'deps' : ['underscore', 'jqueryui'],
                         'init' : function()
                         {
+                            Backbone.$ = g_oDromos.$jQ;
                             return g_oDromos.$bb = Backbone.noConflict();
                         }
                     }
