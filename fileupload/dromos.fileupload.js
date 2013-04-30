@@ -25,7 +25,7 @@ define(["jquery", "jqueryui"], function($jQ)
                             }).parent().css('position', 'relative')
                         .change(function(toEvent)
                             {
-                                $jQ('.fakeFile > input', $jQ(this)).val($jQ('> input', $jQ(this)).val());
+                                $jQ('.fakeFile > input', $jQ(this)).val($jQ('> input', $jQ(this)).val().replace(/C:\\fakepath\\/gi, ""));
                             });
                 $jQ('.fakeFile', $jQ(this.element).parent()).css(
                     {
