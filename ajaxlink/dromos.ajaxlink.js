@@ -21,7 +21,7 @@ define(["jquery", "jqueryui"], function($jQ)
              */
             onStartHover : function(toEvent)
             {
-                $jQ('.'+this.options.containerClass).css({"display":"none"});
+                $jQ('.'+this.options.containerClass, this).css({"display":"none"});
                 if (this._targetContainer)
                 {
                     this._targetContainer.css({"display" : "block"});
@@ -33,7 +33,7 @@ define(["jquery", "jqueryui"], function($jQ)
              */
             onStopHover : function(toEvent)
             {
-                $jQ('.'+this.options.containerClass).css({"display":"block"});
+                $jQ('.'+this.options.containerClass, this).css({"display":"block"});
                 if (this._targetContainer)
                 {
                     this._targetContainer.css({"display" : "none"});
@@ -95,7 +95,6 @@ define(["jquery", "jqueryui"], function($jQ)
         {
             var loJQElement = $jQ(this.element).addClass("ajaxLink");
             this.options.url = this.options.url || loJQElement.attr('href');
-            loJQElement.attr("href", "#");
 
             // Bind to the loadEvent click and hover events
             // If the loadEvent is 'load' then load the content now
@@ -186,6 +185,7 @@ define(["jquery", "jqueryui"], function($jQ)
         onSuccess : function(toData)
         {
             this._content = toData;
+            $jQ(this.element).attr("href", "#");
             var lcTarget = this.getTarget();
             if (lcTarget === "_blank")
             {
